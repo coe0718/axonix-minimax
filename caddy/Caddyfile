@@ -1,0 +1,17 @@
+# Axonix Caddy config — copy/merge into your Caddy host's Caddyfile.
+#
+# Set NUC_HOST in Caddy's environment (e.g. NUC_HOST=192.168.1.50).
+# Both the dashboard and stream are served from the stream container on the NUC.
+
+axonix.live {
+    reverse_proxy {$NUC_HOST}:7040
+}
+
+stream.axonix.live {
+    @pipe path /pipe
+    respond @pipe 403
+
+    reverse_proxy {$NUC_HOST}:7040 {
+        flush_interval -1
+    }
+}

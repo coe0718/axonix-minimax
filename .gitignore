@@ -1,0 +1,10 @@
+.DS_Store
+/target
+Cargo.lock
+ISSUES_TODAY.md
+ISSUE_RESPONSE.md
+/tmp/
+.env
+deploy_key
+deploy_key.pub
+CLAUDE_SETUP.md

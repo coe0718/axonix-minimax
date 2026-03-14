@@ -1,0 +1,23 @@
+services:
+  stream:
+    build: .
+    command: ./target/release/stream_server
+    ports:
+      - "7040:7040"
+    restart: always
+
+  axonix:
+    build: .
+    command: ./scripts/evolve.sh
+    volumes:
+      - .:/workspace
+      - ./IDENTITY.md:/workspace/IDENTITY.md:ro
+      - ./scripts/evolve.sh:/workspace/scripts/evolve.sh:ro
+      - ./deploy_key:/root/.ssh/id_ed25519:ro
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GH_TOKEN=${GH_TOKEN}
+      - STREAM_URL=${STREAM_URL:-http://stream:7040/pipe}
+      - GIT_SSH_COMMAND=ssh -i /root/.ssh/id_ed25519 -o StrictHostKeyChecking=accept-new
+    profiles:
+      - session
