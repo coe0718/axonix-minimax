@@ -1,26 +1,26 @@
 #!/bin/bash
-# scripts/evolve.sh — One evolution cycle. Run daily via GitHub Actions or manually.
+# scripts/evolve.sh — One evolution cycle powered by GitHub Copilot Codex.
 #
 # Usage:
-#   ANTHROPIC_API_KEY=sk-... ./scripts/evolve.sh
+#   ./scripts/evolve.sh
+#
+# Prerequisites:
+#   npm install -g @openai/codex
+#   codex --provider github-copilot  (first run — completes device login flow)
 #
 # Environment:
-#   ANTHROPIC_API_KEY  — required
-#   REPO               — GitHub repo (default: coe0718/axonix)
-#   MODEL              — LLM model (default: claude-opus-4-6)
-#   TIMEOUT            — Max session time in seconds (default: 600)
+#   REPO     — GitHub repo (default: coe0718/axonix-codex)
+#   TIMEOUT  — Max session time in seconds (default: 600)
 
 set -euo pipefail
 
-REPO="${REPO:-coe0718/axonix}"
-MODEL="${MODEL:-claude-opus-4-6}"
+REPO="${REPO:-coe0718/axonix-codex}"
 TIMEOUT="${TIMEOUT:-600}"
-STREAM_URL="${STREAM_URL:-http://stream:3000/pipe}"
 DAY=$(cat DAY_COUNT 2>/dev/null || echo 1)
 DATE=$(date +%Y-%m-%d)
 
 echo "=== Day $DAY: $DATE ==="
-echo "Model: $MODEL"
+echo "Provider: github-copilot (Codex)"
 echo "Timeout: ${TIMEOUT}s"
 echo ""
 
@@ -50,14 +50,10 @@ else
 fi
 echo ""
 
-# ── Step 3: Prepare journal tail (last 10 entries for context) ──
-RECENT_JOURNAL=$(head -200 JOURNAL.md 2>/dev/null || echo "No journal yet.")
-
-# ── Step 4: Run evolution session ──
-echo "→ Starting evolution session..."
+# ── Step 3: Run evolution session ──
+echo "→ Starting evolution session (Codex)..."
 echo ""
 
-# Use gtimeout (brew install coreutils) on macOS, timeout on Linux
 TIMEOUT_CMD="timeout"
 if ! command -v timeout &>/dev/null; then
     if command -v gtimeout &>/dev/null; then
@@ -102,7 +98,7 @@ For each improvement, follow the evolve skill rules:
 - Write a test first if possible
 - Use edit_file for surgical changes
 - Run cargo build && cargo test after changes
-- If build fails, try to fix it. If you can't, revert with: bash git checkout -- src/
+- If build fails, try to fix it. If you can't, revert with: git checkout -- src/
 - After each successful change, commit: git add -A && git commit -m "Day $DAY: <short description>"
 - Then move on to the next improvement
 
@@ -122,19 +118,18 @@ comment: [your 2-3 sentence response to the person]
 Now begin. Read IDENTITY.md first.
 PROMPT
 
-${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} cargo run -- \
-    --model "$MODEL" \
-    --skills ./skills \
-    < "$PROMPT_FILE" 2>&1 \
-    | tee /tmp/session.log \
-    | curl -s -X POST "$STREAM_URL" --data-binary @- || true
+${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} codex \
+    --provider github-copilot \
+    --approval-mode full-auto \
+    "$(cat "$PROMPT_FILE")" 2>&1 \
+    | tee /tmp/session.log || true
 
 rm -f "$PROMPT_FILE"
 
 echo ""
 echo "→ Session complete. Checking results..."
 
-# ── Step 5: Verify build and handle leftovers ──
+# ── Step 4: Verify build and handle leftovers ──
 if cargo build --quiet 2>/dev/null && cargo test --quiet 2>/dev/null; then
     echo "  Build: PASS"
 else
@@ -145,12 +140,7 @@ fi
 # Increment day counter
 echo "$((DAY + 1))" > DAY_COUNT
 
-# Rebuild website
-echo "→ Rebuilding website..."
-python3 scripts/build_site.py
-echo "  Site rebuilt."
-
-# Commit any remaining uncommitted changes (journal, roadmap, day counter, site, etc.)
+# Commit any remaining uncommitted changes (journal, roadmap, day counter, etc.)
 git add -A
 if ! git diff --cached --quiet; then
     git commit -m "Day $DAY: session wrap-up"
@@ -159,15 +149,15 @@ else
     echo "  No uncommitted changes remaining."
 fi
 
-# ── Step 6: Handle issue response ──
+# ── Step 5: Handle issue response ──
 if [ -f ISSUE_RESPONSE.md ]; then
     echo ""
     echo "→ Posting issue response..."
-    
+
     ISSUE_NUM=$(grep "^issue_number:" ISSUE_RESPONSE.md | awk '{print $2}' || true)
     STATUS=$(grep "^status:" ISSUE_RESPONSE.md | awk '{print $2}' || true)
     COMMENT=$(sed -n '/^comment:/,$ p' ISSUE_RESPONSE.md | sed '1s/^comment: //' || true)
-    
+
     if [ -n "$ISSUE_NUM" ] && command -v gh &>/dev/null; then
         gh issue comment "$ISSUE_NUM" \
             --repo "$REPO" \
@@ -184,11 +174,11 @@ Commit: $(git rev-parse --short HEAD)" || true
             echo "  Commented on issue #$ISSUE_NUM (status: $STATUS)"
         fi
     fi
-    
+
     rm -f ISSUE_RESPONSE.md
 fi
 
-# ── Step 7: Push ──
+# ── Step 6: Push ──
 echo ""
 echo "→ Pushing..."
 git push || echo "  Push failed (maybe no remote or auth issue)"
