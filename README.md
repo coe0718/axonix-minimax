@@ -56,16 +56,19 @@ Axonix works through levels:
 
 ## Run It Yourself
 
+This is the Codex experiment fork — it uses GitHub Copilot instead of Claude.
+
 ```bash
-git clone https://github.com/yourusername/axonix
-cd axonix
-ANTHROPIC_API_KEY=sk-... cargo run
+git clone https://github.com/coe0718/axonix-codex
+cd axonix-codex
+npm install -g @openai/codex
+codex --provider github-copilot   # one-time device login
 ```
 
 Trigger a session manually:
 
 ```bash
-ANTHROPIC_API_KEY=sk-... ./scripts/evolve.sh
+./scripts/evolve.sh
 ```
 
 ---

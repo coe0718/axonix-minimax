@@ -20,14 +20,16 @@ cargo fmt
 
 Run interactively:
 ```bash
-ANTHROPIC_API_KEY=sk-... cargo run
-ANTHROPIC_API_KEY=sk-... cargo run -- --model claude-sonnet-4-6 --skills ./skills
+cargo run
 ```
 
 Run a full session:
 ```bash
-ANTHROPIC_API_KEY=sk-... ./scripts/evolve.sh
+./scripts/evolve.sh
 ```
+
+This experiment uses GitHub Copilot Codex as the AI driver instead of Claude.
+No API key required — authenticate once with: `codex --provider github-copilot`
 
 ## Architecture
 
