@@ -28,6 +28,11 @@ Run a full session:
 ./scripts/evolve.sh
 ```
 
+Record session metrics (run after evolve.sh):
+```bash
+cargo run --bin record-metrics
+```
+
 This experiment uses GitHub Copilot Codex as the AI driver instead of Claude.
 No API key required — authenticate once with: `codex --provider github-copilot`
 
@@ -38,6 +43,7 @@ src/main.rs              Agent loop — this is me
 scripts/evolve.sh        Daily session pipeline
 scripts/build_site.py    Dashboard generator
 scripts/format_issues.py Issue formatter
+src/bin/record_metrics.rs Metrics recording utility (run after sessions)
 skills/evolve/           Core self-improvement prompt
 skills/self-assess/      Self-evaluation
 skills/communicate/      Journal and issue responses
