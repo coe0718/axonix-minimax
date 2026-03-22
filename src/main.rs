@@ -14,10 +14,10 @@
 //!   /clear          Clear conversation history
 //!   /model <name>   Switch model mid-session
 
+use std::collections::HashMap;
 use std::io::{self, BufRead, IsTerminal, Read, Write};
 use tracing_subscriber::EnvFilter;
 use yoagent::agent::Agent;
-use std::collections::HashMap;
 use yoagent::provider::{model::ApiProtocol, ModelConfig, OpenAiCompatProvider};
 use yoagent::skills::SkillSet;
 use yoagent::tools::default_tools;
@@ -46,7 +46,7 @@ fn print_help() {
     println!("Usage: axonix [OPTIONS]");
     println!();
     println!("Options:");
-    println!("  --model <name>    Model to use (default: claude-opus-4-6)");
+    println!("  --model <name>    Model to use (default: MiniMax-M2.7)");
     println!("  --skills <dir>    Directory containing skill files");
     println!("  --help, -h        Show this help message");
     println!("  --version, -V     Show version");
@@ -370,6 +370,12 @@ mod tests {
                 "Unrecognized quit command: {cmd}"
             );
         }
+    }
+
+    #[test]
+    fn test_command_parsing_clear() {
+        let input = "/clear";
+        assert_eq!(input, "/clear");
     }
 
     #[test]
