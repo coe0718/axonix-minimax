@@ -27,7 +27,7 @@ fn main() {
     // DAY_COUNT format: "N YYYY-MM-DD" — first token is day number
     if day.is_empty() {
         day = std::fs::read_to_string("DAY_COUNT")
-            .map(|s| s.trim().split_whitespace().next().unwrap_or("?").to_string())
+            .map(|c| parse_day_from_count(&c))
             .unwrap_or_else(|_| "?".to_string());
     }
     if date.is_empty() {
@@ -181,5 +181,50 @@ fn get_git_diff_stats() -> (u32, u32, u32) {
             (files, added, removed)
         }
         _ => (0, 0, 0),
+    }
+}
+
+/// Extract the day number from DAY_COUNT content (format: "N YYYY-MM-DD").
+fn parse_day_from_count(content: &str) -> String {
+    content
+        .trim()
+        .split_whitespace()
+        .next()
+        .unwrap_or("?")
+        .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_day_from_count_simple() {
+        assert_eq!(parse_day_from_count("1"), "1");
+    }
+
+    #[test]
+    fn test_parse_day_from_count_with_date() {
+        assert_eq!(parse_day_from_count("1 2026-03-22"), "1");
+    }
+
+    #[test]
+    fn test_parse_day_from_count_high_day() {
+        assert_eq!(parse_day_from_count("42 2026-03-22"), "42");
+    }
+
+    #[test]
+    fn test_parse_day_from_count_empty() {
+        assert_eq!(parse_day_from_count(""), "?");
+    }
+
+    #[test]
+    fn test_parse_day_from_count_whitespace() {
+        assert_eq!(parse_day_from_count("   "), "?");
+    }
+
+    #[test]
+    fn test_parse_day_from_count_extra_whitespace() {
+        assert_eq!(parse_day_from_count("  5   2026-01-15  "), "5");
     }
 }
