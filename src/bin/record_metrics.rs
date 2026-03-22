@@ -100,9 +100,12 @@ fn count_test_result(output: &str, marker: &str) -> u32 {
         .filter(|line| line.contains(marker))
         .filter_map(|line| {
             // Extract number from "N passed" or "N failed"
-            let num_str = line
-                .split_whitespace()
-                .find(|w| w.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false))?;
+            let num_str = line.split_whitespace().find(|w| {
+                w.chars()
+                    .next()
+                    .map(|c| c.is_ascii_digit())
+                    .unwrap_or(false)
+            })?;
             num_str.parse::<u32>().ok()
         })
         .sum()
@@ -116,15 +119,18 @@ fn get_git_diff_stats() -> (u32, u32, u32) {
         .ok();
 
     let commit = match output {
-        Some(o) if o.status.success() => {
-            String::from_utf8_lossy(&o.stdout).trim().to_string()
-        }
+        Some(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
         _ => return (0, 0, 0),
     };
 
     // Get diff against parent
     let diff_output = Command::new("git")
-        .args(["diff", &format!("{commit}^..{commit}"), "--stat", "--stat-width=200"])
+        .args([
+            "diff",
+            &format!("{commit}^..{commit}"),
+            "--stat",
+            "--stat-width=200",
+        ])
         .output()
         .ok();
 
@@ -134,7 +140,7 @@ fn get_git_diff_stats() -> (u32, u32, u32) {
             let last_line = output.lines().last().unwrap_or("");
             let parts: Vec<&str> = last_line.split_whitespace().collect();
             // Format: "N files changed, M insertions(+), L deletions(-)"
-            let files = parts.get(0).and_then(|s| s.parse().ok()).unwrap_or(0);
+            let files = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
             let added = parts
                 .get(2)
                 .map(|s| s.replace(',', ""))
