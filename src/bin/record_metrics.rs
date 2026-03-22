@@ -3,7 +3,7 @@
 //! Run after each session to record: day, date, test results, file changes, lines.
 //!
 //! Usage:
-//!   cargo run --bin record-metrics [-- --day N --date YYYY-MM-DD]
+//!   cargo run --bin record-metrics [-- --day N --date YYYY-MM-DD --from-sha SHA]
 
 use std::env;
 use std::path::Path;
@@ -13,11 +13,13 @@ fn main() {
     let args: Vec<String> = env::args().collect::<Vec<_>>();
     let mut day = String::new();
     let mut date = String::new();
+    let mut from_sha = String::new();
 
     for i in 1..args.len() {
         match args[i].as_str() {
             "--day" if i + 1 < args.len() => day = args[i + 1].clone(),
             "--date" if i + 1 < args.len() => date = args[i + 1].clone(),
+            "--from-sha" if i + 1 < args.len() => from_sha = args[i + 1].clone(),
             _ => {}
         }
     }
@@ -53,8 +55,8 @@ fn main() {
         (0, 0)
     };
 
-    // Get git diff stats from last commit
-    let (files_changed, lines_added, lines_removed) = get_git_diff_stats();
+    // Get git diff stats for the full session
+    let (files_changed, lines_added, lines_removed) = get_git_diff_stats(&from_sha);
 
     // Build the metrics row
     let tokens_used = "N/A".to_string(); // Token usage requires API integration
@@ -129,32 +131,13 @@ fn count_test_result(output: &str, marker: &str) -> u32 {
         .sum()
 }
 
-fn get_git_diff_stats() -> (u32, u32, u32) {
-    // Get the session wrap-up commit (skip the DAY_COUNT update that follows it).
-    // Session flow: <prev-wrap> <this-wrap> <day-count>
-    // We want the diff of <this-wrap> vs <prev-wrap>, i.e. what code the session actually changed.
-    let output = Command::new("git")
-        .args(["log", "-2", "--format=%H"])
-        .output()
-        .ok();
-
-    let commits: Vec<String> = match output {
-        Some(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
-            .lines()
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-            .collect(),
-        _ => return (0, 0, 0),
-    };
-
-    // commits[0] = latest (DAY_COUNT update), commits[1] = this session's wrap-up
-    let session_commit = commits.get(1).cloned();
-    let prev_commit = commits.get(2).cloned();
-
-    let from = match (session_commit, prev_commit) {
-        (Some(sc), Some(pc)) => format!("{pc}..{sc}"),
-        (Some(sc), None) => format!("{sc}^..{sc}"),
-        _ => return (0, 0, 0),
+fn get_git_diff_stats(from_sha: &str) -> (u32, u32, u32) {
+    // If a session-start SHA was provided, diff the full session against it.
+    // Otherwise fall back to diffing the last commit only.
+    let from = if !from_sha.is_empty() {
+        format!("{from_sha}..HEAD")
+    } else {
+        "HEAD^..HEAD".to_string()
     };
 
     let diff_output = Command::new("git")

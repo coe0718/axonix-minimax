@@ -78,6 +78,9 @@ else
 fi
 echo ""
 
+# Snapshot HEAD before session for accurate diff stats in record_metrics
+SESSION_START_SHA=$(git rev-parse HEAD 2>/dev/null || echo "")
+
 # ── Step 3: Run evolution session ──
 echo "→ Starting evolution session (Codex)..."
 echo ""
@@ -173,8 +176,6 @@ ${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} \
     cargo run --bin axonix -- --model MiniMax-M2.7 --skills ./skills \
     < "$PROMPT_FILE" 2>&1 \
     | tee /tmp/session.log
-echo "--- session log tail ---"
-tail -20 /tmp/session.log || true
 
 rm -f "$PROMPT_FILE"
 
@@ -200,7 +201,7 @@ fi
 
 # ── Step 4b: Record session metrics ──
 echo "→ Recording metrics..."
-cargo run --bin record_metrics --quiet -- --day "$DAY" --date "$DATE" 2>/dev/null \
+cargo run --bin record_metrics --quiet -- --day "$DAY" --date "$DATE" ${SESSION_START_SHA:+--from-sha "$SESSION_START_SHA"} 2>/dev/null \
     && echo "  Metrics recorded." \
     || echo "  Metrics recording failed (non-fatal)."
 git add METRICS.md
@@ -208,14 +209,15 @@ if ! git diff --cached --quiet; then
     git commit -m "chore: Day $DAY S$SESSION metrics"
 fi
 
-# ── Step 5: Handle issue response ──
-if [ -f ISSUE_RESPONSE.md ]; then
+# ── Step 5: Handle issue responses ──
+for RESPONSE_FILE in ISSUE_RESPONSE*.md; do
+    [ -f "$RESPONSE_FILE" ] || continue
     echo ""
-    echo "→ Posting issue response..."
+    echo "→ Posting issue response from $RESPONSE_FILE..."
 
-    ISSUE_NUM=$(grep "^issue_number:" ISSUE_RESPONSE.md | awk '{print $2}' || true)
-    STATUS=$(grep "^status:" ISSUE_RESPONSE.md | awk '{print $2}' || true)
-    COMMENT=$(sed -n '/^comment:/,$ p' ISSUE_RESPONSE.md | sed '1s/^comment: //' || true)
+    ISSUE_NUM=$(grep "^issue_number:" "$RESPONSE_FILE" | awk '{print $2}' || true)
+    STATUS=$(grep "^status:" "$RESPONSE_FILE" | awk '{print $2}' || true)
+    COMMENT=$(sed -n '/^comment:/,$ p' "$RESPONSE_FILE" | sed '1s/^comment: //' || true)
 
     if [ -n "$ISSUE_NUM" ] && command -v gh &>/dev/null; then
         gh issue comment "$ISSUE_NUM" \
@@ -234,10 +236,21 @@ Commit: $(git rev-parse --short HEAD)" || true
         fi
     fi
 
-    rm -f ISSUE_RESPONSE.md
+    rm -f "$RESPONSE_FILE"
+done
+
+# ── Step 6: Enforce non-empty commit body before push ──
+LAST_COMMIT_BODY=$(git log -1 --format="%b" | tr -d '[:space:]')
+if [ -z "$LAST_COMMIT_BODY" ]; then
+    echo "  WARNING: last commit has no body — amending before push"
+    LAST_SUBJECT=$(git log -1 --format="%s")
+    COMMIT_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    git commit --amend --no-edit -m "${LAST_SUBJECT}
+
+Auto-generated body: session wrap-up at ${COMMIT_DATE}."
 fi
 
-# ── Step 6: Push ──
+# ── Step 7: Push ──
 echo ""
 echo "→ Pushing..."
 git push || echo "  Push failed (maybe no remote or auth issue)"
