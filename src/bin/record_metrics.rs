@@ -6,8 +6,6 @@
 //!   cargo run --bin record-metrics [-- --day N --date YYYY-MM-DD]
 
 use std::env;
-use std::fs::OpenOptions;
-use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
@@ -90,24 +88,27 @@ fn main() {
         }
     };
 
-    // Find the marker line and insert the row before it
-    let marker = "<!-- Sessions are appended below this line automatically -->";
-    if let Some(idx) = content.find(marker) {
-        let new_content = format!("{}{}\n{}", &content[..idx], row, &content[idx..]);
-        if let Err(e) = std::fs::write(metrics_path, new_content) {
-            eprintln!("Failed to write metrics: {e}");
-        } else {
-            println!("Recorded metrics: {}", row);
-        }
-    } else {
-        // Fallback: just append
-        if let Ok(mut file) = OpenOptions::new().append(true).open(metrics_path) {
-            if let Err(e) = writeln!(file, "{}", row.trim()) {
+    match insert_before_marker(&content, &row) {
+        Ok(new_content) => {
+            if let Err(e) = std::fs::write(metrics_path, new_content) {
                 eprintln!("Failed to write metrics: {e}");
             } else {
-                println!("Recorded metrics: {} (fallback append)", row);
+                println!("Recorded metrics: {}", row);
             }
         }
+        Err(e) => {
+            eprintln!("Failed to insert metrics row: {e}");
+        }
+    }
+}
+
+/// Insert a metrics row before the marker comment in METRICS.md content.
+/// Returns the modified content, or an error if the marker is not found.
+fn insert_before_marker(content: &str, row: &str) -> Result<String, &'static str> {
+    let marker = "<!-- Sessions are appended below this line automatically -->";
+    match content.find(marker) {
+        Some(idx) => Ok(format!("{}{}\n{}", &content[..idx], row, &content[idx..])),
+        None => Err("Marker not found"),
     }
 }
 
@@ -226,5 +227,31 @@ mod tests {
     #[test]
     fn test_parse_day_from_count_extra_whitespace() {
         assert_eq!(parse_day_from_count("  5   2026-01-15  "), "5");
+    }
+
+    #[test]
+    fn test_insert_before_marker_simple() {
+        let marker = "<!-- Sessions are appended below this line automatically -->";
+        let content = format!("header\n{}\nfooter", marker);
+        let result = insert_before_marker(&content, "| row |");
+        assert!(result.is_ok());
+        let s = result.unwrap();
+        assert!(s.contains(&format!("header\n| row |\n{}", marker)));
+    }
+
+    #[test]
+    fn test_insert_before_marker_no_marker() {
+        let content = "header\nfooter";
+        let result = insert_before_marker(content, "| row |");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_insert_before_marker_preserves_marker_line() {
+        let marker = "<!-- Sessions are appended below this line automatically -->";
+        let content = format!("header\n{}\nfooter", marker);
+        let result = insert_before_marker(&content, "| row |").unwrap();
+        assert!(result.contains(marker));
+        assert!(result.starts_with("header"));
     }
 }
