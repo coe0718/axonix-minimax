@@ -26,10 +26,24 @@ fi
 REPO="${REPO:-coe0718/axonix-minimax}"
 ISSUES_REPO="${ISSUES_REPO:-coe0718/axonix-minimax}"
 TIMEOUT="${TIMEOUT:-600}"
-DAY=$(cat DAY_COUNT 2>/dev/null || echo 1)
 DATE=$(date +%Y-%m-%d)
 
-echo "=== Day $DAY: $DATE ==="
+# DAY_COUNT format: "N YYYY-MM-DD" — N is calendar days, date is last run date
+COUNT_RAW=$(cat DAY_COUNT 2>/dev/null || echo "0 ")
+STORED_DAY=$(echo "$COUNT_RAW" | awk '{print $1}')
+STORED_DATE=$(echo "$COUNT_RAW" | awk '{print $2}')
+
+if [ "$STORED_DATE" = "$DATE" ]; then
+    DAY=$STORED_DAY
+    SESSION=$(($(cat SESSION_COUNT 2>/dev/null || echo 0) + 1))
+else
+    DAY=$((STORED_DAY + 1))
+    SESSION=1
+    echo "$DAY $DATE" > DAY_COUNT
+fi
+echo "$SESSION" > SESSION_COUNT
+
+echo "=== Day $DAY, Session $SESSION: $DATE ==="
 echo "Provider: MiniMax (MiniMax-M2.7 via Anthropic-compat API)"
 echo "Timeout: ${TIMEOUT}s"
 echo ""
@@ -74,7 +88,7 @@ fi
 
 PROMPT_FILE=$(mktemp)
 cat > "$PROMPT_FILE" <<PROMPT
-Today is Day $DAY ($DATE). You are Axonix, a self-evolving coding agent.
+Today is Day $DAY, Session $SESSION ($DATE). You are Axonix, a self-evolving coding agent.
 
 IMPORTANT: You must use tools to do all work. Do not just think or plan — act.
 Your FIRST action must be to call read_file with path="IDENTITY.md".
@@ -100,7 +114,7 @@ Step 4 — Implement:
 - Use edit_file for surgical changes to existing files
 - Use bash to run: cargo build && cargo test
 - If build fails, revert with: bash "git checkout -- src/"
-- After each successful change: bash "git add -A && git commit -m 'Day $DAY: description'"
+- After each successful change: bash "git add -A && git commit -m 'Day $DAY S$SESSION: description'"
 - Keep making improvements until you run out of good ideas
 
 Step 5 — Update JOURNAL.md:
@@ -139,13 +153,10 @@ else
     git checkout -- src/
 fi
 
-# Increment day counter
-echo "$((DAY + 1))" > DAY_COUNT
-
 # Commit any remaining uncommitted changes (journal, roadmap, day counter, etc.)
 git add -A
 if ! git diff --cached --quiet; then
-    git commit -m "Day $DAY: session wrap-up"
+    git commit -m "chore: Day $DAY Session $SESSION wrap-up"
     echo "  Committed session wrap-up."
 else
     echo "  No uncommitted changes remaining."
@@ -163,7 +174,7 @@ if [ -f ISSUE_RESPONSE.md ]; then
     if [ -n "$ISSUE_NUM" ] && command -v gh &>/dev/null; then
         gh issue comment "$ISSUE_NUM" \
             --repo "$ISSUES_REPO" \
-            --body "🤖 **Day $DAY** (axonix-minimax experiment)
+            --body "🤖 **Day $DAY, Session $SESSION** (axonix-minimax experiment)
 
 $COMMENT
 
@@ -186,4 +197,4 @@ echo "→ Pushing..."
 git push || echo "  Push failed (maybe no remote or auth issue)"
 
 echo ""
-echo "=== Day $DAY complete ==="
+echo "=== Day $DAY, Session $SESSION complete ==="
