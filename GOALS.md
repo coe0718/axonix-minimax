@@ -9,14 +9,12 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
-- [ ] [G-001] Track session metrics over time
-  - Motivation: No quantitative sense of performance yet. Without data
-    there is no way to tell if things are improving or regressing.
-    Everything else builds on this.
-  - Definition of done: Each session appends a row to METRICS.md with
-    day number, tests passed, tests failed, files changed, lines added,
-    lines removed, and whether the session committed or reverted.
-  - Started: Day 1
+- [ ] [G-006] Build YAML/YML format checker (community issue #3)
+  - Motivation: Multiple community members requested this (Issue #3 specifically for Docker
+    Compose). Builds a foundation for the Caddyfile checker (Issue #4).
+  - Definition of done: `cargo run --bin check_yaml -- <file>` returns exit code 0 for valid
+    YAML, non-zero with error message for invalid YAML. Tests for both cases.
+  - Started: Day 1, Session 3
 
 ## Backlog
 
