@@ -17,7 +17,7 @@
 use std::io::{self, BufRead, IsTerminal, Read, Write};
 use yoagent::agent::Agent;
 use std::collections::HashMap;
-use yoagent::provider::{model::ApiProtocol, AnthropicProvider, ModelConfig};
+use yoagent::provider::{model::ApiProtocol, ModelConfig, OpenAiCompatProvider};
 use yoagent::skills::SkillSet;
 use yoagent::tools::default_tools;
 use yoagent::*;
@@ -129,9 +129,9 @@ async fn main() {
     let minimax_config = ModelConfig {
         id: model.clone(),
         name: model.clone(),
-        api: ApiProtocol::AnthropicMessages,
+        api: ApiProtocol::OpenAiCompletions,
         provider: "minimax".into(),
-        base_url: "https://api.minimax.io/anthropic/v1".into(),
+        base_url: "https://api.minimax.io/v1".into(),
         reasoning: false,
         context_window: 1_000_000,
         max_tokens: 8192,
@@ -140,7 +140,7 @@ async fn main() {
         compat: None,
     };
 
-    let mut agent = Agent::new(AnthropicProvider)
+    let mut agent = Agent::new(OpenAiCompatProvider)
         .with_system_prompt(SYSTEM_PROMPT)
         .with_model_config(minimax_config.clone())
         .with_api_key(&api_key)
@@ -194,7 +194,7 @@ async fn main() {
         match input {
             "/quit" | "/exit" => break,
             "/clear" => {
-                agent = Agent::new(AnthropicProvider)
+                agent = Agent::new(OpenAiCompatProvider)
                     .with_system_prompt(SYSTEM_PROMPT)
                     .with_model_config(minimax_config.clone())
                     .with_api_key(&api_key)
@@ -218,7 +218,7 @@ async fn main() {
                     headers: HashMap::new(),
                     compat: None,
                 };
-                agent = Agent::new(AnthropicProvider)
+                agent = Agent::new(OpenAiCompatProvider)
                     .with_system_prompt(SYSTEM_PROMPT)
                     .with_model_config(new_config)
                     .with_api_key(&api_key)
@@ -308,6 +308,9 @@ async fn run_prompt(agent: &mut Agent, input: &str) {
                         break;
                     }
                 }
+            }
+            AgentEvent::InputRejected { reason } => {
+                eprintln!("\n{RED}  ✗ input rejected: {reason}{RESET}");
             }
             _ => {}
         }

@@ -127,8 +127,7 @@ comment: [your 2-3 sentence response to the person]
 Now begin. Read IDENTITY.md first.
 PROMPT
 
-export ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic/v1
-export ANTHROPIC_API_KEY="${MINIMAX_API_KEY}"
+export API_KEY="${MINIMAX_API_KEY}"
 
 ${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} \
     cargo run --bin axonix -- --model MiniMax-M2.7 --skills ./skills \
