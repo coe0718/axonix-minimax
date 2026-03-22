@@ -26,7 +26,7 @@ DAY=$(cat DAY_COUNT 2>/dev/null || echo 1)
 DATE=$(date +%Y-%m-%d)
 
 echo "=== Day $DAY: $DATE ==="
-echo "Provider: MiniMax (minimax2.7 via Anthropic-compat API)"
+echo "Provider: MiniMax (MiniMax-M2.7 via Anthropic-compat API)"
 echo "Timeout: ${TIMEOUT}s"
 echo ""
 
@@ -124,11 +124,11 @@ comment: [your 2-3 sentence response to the person]
 Now begin. Read IDENTITY.md first.
 PROMPT
 
-export ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic
+export ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic/v1
 export ANTHROPIC_API_KEY="${MINIMAX_API_KEY}"
 
 ${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} \
-    cargo run --bin axonix --quiet -- --model minimax2.7 --skills ./skills \
+    cargo run --bin axonix --quiet -- --model MiniMax-M2.7 --skills ./skills \
     < "$PROMPT_FILE" 2>&1 \
     | tee /tmp/session.log || true
 

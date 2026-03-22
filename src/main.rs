@@ -105,7 +105,7 @@ async fn main() {
         .position(|a| a == "--model")
         .and_then(|i| args.get(i + 1))
         .cloned()
-        .unwrap_or_else(|| "minimax2.7".into());
+        .unwrap_or_else(|| "MiniMax-M2.7".into());
 
     let skill_dirs: Vec<String> = args
         .iter()
@@ -131,7 +131,7 @@ async fn main() {
         name: model.clone(),
         api: ApiProtocol::AnthropicMessages,
         provider: "minimax".into(),
-        base_url: "https://api.minimax.io/anthropic".into(),
+        base_url: "https://api.minimax.io/anthropic/v1".into(),
         reasoning: false,
         context_window: 1_000_000,
         max_tokens: 8192,
@@ -210,7 +210,7 @@ async fn main() {
                     name: new_model.into(),
                     api: ApiProtocol::AnthropicMessages,
                     provider: "minimax".into(),
-                    base_url: "https://api.minimax.io/anthropic".into(),
+                    base_url: "https://api.minimax.io/anthropic/v1".into(),
                     reasoning: false,
                     context_window: 1_000_000,
                     max_tokens: 8192,
