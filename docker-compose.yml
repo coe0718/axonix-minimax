@@ -13,6 +13,7 @@ services:
       - TZ=${TZ:-America/Indiana/Indianapolis}
       - MINIMAX_API_KEY=${MINIMAX_API_KEY}
       - GH_TOKEN=${GH_TOKEN}
-      - GIT_SSH_COMMAND=ssh -i /workspace/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/workspace/.ssh/known_hosts
+      - GIT_SSH_COMMAND=ssh -i /workspace/deploy_key -o StrictHostKeyChecking=no
+      - GIT_REMOTE_URL=git@github.com:coe0718/axonix-minimax.git
       - HOME=/workspace
       - CARGO_HOME=/workspace/.cargo

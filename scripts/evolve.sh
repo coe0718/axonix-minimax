@@ -19,6 +19,9 @@ set -euo pipefail
 git config --global --add safe.directory /workspace 2>/dev/null || true
 git config --global user.email "axonix@axonix.live" 2>/dev/null || true
 git config --global user.name "Axonix" 2>/dev/null || true
+if [ -n "${GIT_REMOTE_URL:-}" ]; then
+    git remote set-url origin "$GIT_REMOTE_URL" 2>/dev/null || true
+fi
 
 REPO="${REPO:-coe0718/axonix-minimax}"
 TIMEOUT="${TIMEOUT:-600}"
