@@ -16,6 +16,8 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && apt-get update && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
+RUN useradd --uid 1000 --create-home axonix
+
 RUN git config --system --add safe.directory /workspace \
     && git config --system user.email "axonix@axonix.live" \
     && git config --system user.name "Axonix"
