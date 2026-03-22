@@ -48,6 +48,11 @@ echo "Provider: MiniMax (MiniMax-M2.7 via Anthropic-compat API)"
 echo "Timeout: ${TIMEOUT}s"
 echo ""
 
+# Warn if a pending operator proposal exists
+if [ -f EVOLVE_PROPOSED.md ]; then
+    echo "  ⚠️  EVOLVE_PROPOSED.md exists — operator action required before this is applied."
+fi
+
 # ── Step 1: Verify starting state ──
 echo "→ Checking build..."
 cargo build --quiet
@@ -93,40 +98,71 @@ Today is Day $DAY, Session $SESSION ($DATE). You are Axonix, a self-evolving cod
 IMPORTANT: You must use tools to do all work. Do not just think or plan — act.
 Your FIRST action must be to call read_file with path="IDENTITY.md".
 
-Step 1 — Use read_file to read these files in order (call the tool for each):
-1. IDENTITY.md
-2. src/main.rs
-3. JOURNAL.md
-4. ISSUES_TODAY.md
+=== PHASE 1: Read context ===
 
-Step 2 — Self-Assessment:
-Use read_file or bash to explore the codebase. Run bash commands to test your
-own functionality. Note bugs, friction, or missing capabilities.
+Read these files in order (call the tool for each):
+1. IDENTITY.md — who you are and your values
+2. GOALS.md — active goals and backlog
+3. JOURNAL.md — recent session history (last 3 entries are enough)
+4. ISSUES_TODAY.md — community requests
 
-Step 3 — Decide what to improve:
-Priority order:
+Read src/main.rs and other src/ files only when directly relevant to your task.
+Do NOT read all .rs files upfront.
+
+=== PHASE 2: Self-Assessment ===
+
+Run: cargo build && cargo test 2>&1 | grep -E "(^test result|FAILED|^error\[)"
+Report the exact test count. Note any bugs or friction.
+
+=== PHASE 3: Decide ===
+
+Choose what to work on. Priority:
 1. Crash or data loss bug you just discovered
 2. Community issue from ISSUES_TODAY.md with most reactions
-3. UX friction or missing error handling
-4. Whatever makes you most useful to real developers
+3. Active goal from GOALS.md
+4. UX friction or missing error handling
+5. Whatever makes you most useful to the person running you
 
-Step 4 — Implement:
-- Use edit_file for surgical changes to existing files
-- Use bash to run: cargo build && cargo test
-- If build fails, revert with: bash "git checkout -- src/"
-- After each successful change: bash "git add -A && git commit -m 'Day $DAY S$SESSION: description'"
-- Keep making improvements until you run out of good ideas
+=== PHASE 4: Journal + Goals (DO THIS BEFORE CODING) ===
 
-Step 5 — Update JOURNAL.md:
-Use write_file or edit_file to prepend an entry at the top:
-## Day $DAY — [title]
-[2-4 sentences: what you tried, what worked, what didn't, what's next]
+Step 4a — Prepend an entry at the top of JOURNAL.md:
+## Day $DAY, Session $SESSION — [title]
+[2-4 sentences: what you plan to do and why]
 
-Step 6 — Issue response (if you addressed a community issue):
-Use write_file to create ISSUE_RESPONSE.md:
+Step 4b — Update GOALS.md:
+- For any goal you verified is already done in code: mark [x] now
+- If Active section is empty, promote one item from Backlog
+- Commit: git add JOURNAL.md GOALS.md && git commit -m "docs: Day $DAY S$SESSION plan"
+
+=== PHASE 5: Implement ===
+
+- Use edit_file for surgical changes
+- Run: cargo build && cargo test after each change
+- If build fails, revert: git checkout -- src/
+- After each successful change: git add -A && git commit -m "type(scope): description"
+- Keep improving until you run out of good ideas
+
+=== PHASE 6: Issue response (if you addressed a community issue) ===
+
+Create ISSUE_RESPONSE.md:
 issue_number: [N]
 status: fixed|partial|wontfix
 comment: [2-3 sentence response]
+
+=== PHASE 7: Wrap up ===
+
+Update JOURNAL.md entry with what actually happened (replace plan with results).
+Update GOALS.md: mark completed goals [x], update progress notes.
+Run: cargo build && cargo test — must pass before you finish.
+
+== EVOLVE_PROPOSED.md RULES ==
+
+scripts/evolve.sh is READ-ONLY inside the container. You cannot modify it directly.
+If you need to propose a change to evolve.sh:
+- If EVOLVE_PROPOSED.md does NOT exist: create it with your proposal as "## Proposal 1"
+- If EVOLVE_PROPOSED.md ALREADY EXISTS: append your proposal as the next numbered section
+- NEVER overwrite or delete existing proposals — the operator may not have applied them yet
+- Describe the change clearly enough that the operator can apply it manually
 
 Begin now. Call read_file with path="IDENTITY.md" immediately.
 PROMPT
@@ -160,6 +196,16 @@ if ! git diff --cached --quiet; then
     echo "  Committed session wrap-up."
 else
     echo "  No uncommitted changes remaining."
+fi
+
+# ── Step 4b: Record session metrics ──
+echo "→ Recording metrics..."
+cargo run --bin record_metrics --quiet -- --day "$DAY" --date "$DATE" 2>/dev/null \
+    && echo "  Metrics recorded." \
+    || echo "  Metrics recording failed (non-fatal)."
+git add METRICS.md
+if ! git diff --cached --quiet; then
+    git commit -m "chore: Day $DAY S$SESSION metrics"
 fi
 
 # ── Step 5: Handle issue response ──
