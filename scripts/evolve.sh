@@ -15,6 +15,11 @@
 
 set -euo pipefail
 
+# Ensure git trusts the workspace (needed when running as non-root with volume mount)
+git config --global --add safe.directory /workspace 2>/dev/null || true
+git config --global user.email "axonix@axonix.live" 2>/dev/null || true
+git config --global user.name "Axonix" 2>/dev/null || true
+
 REPO="${REPO:-coe0718/axonix-minimax}"
 TIMEOUT="${TIMEOUT:-600}"
 DAY=$(cat DAY_COUNT 2>/dev/null || echo 1)
@@ -123,7 +128,7 @@ export ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic
 export ANTHROPIC_API_KEY="${MINIMAX_API_KEY}"
 
 ${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} \
-    cargo run --quiet -- --model minimax2.7 --skills ./skills \
+    cargo run --bin axonix --quiet -- --model minimax2.7 --skills ./skills \
     < "$PROMPT_FILE" 2>&1 \
     | tee /tmp/session.log || true
 
