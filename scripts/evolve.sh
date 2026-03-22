@@ -128,9 +128,11 @@ export ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic/v1
 export ANTHROPIC_API_KEY="${MINIMAX_API_KEY}"
 
 ${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} \
-    cargo run --bin axonix --quiet -- --model MiniMax-M2.7 --skills ./skills \
+    cargo run --bin axonix -- --model MiniMax-M2.7 --skills ./skills \
     < "$PROMPT_FILE" 2>&1 \
-    | tee /tmp/session.log || true
+    | tee /tmp/session.log
+echo "--- session log tail ---"
+tail -20 /tmp/session.log || true
 
 rm -f "$PROMPT_FILE"
 
