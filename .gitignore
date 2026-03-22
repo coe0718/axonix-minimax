@@ -11,3 +11,4 @@ CLAUDE_SETUP.md
 .cargo/
 .cache/
 SESSION_COUNT
+.ssh/
