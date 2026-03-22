@@ -4,9 +4,9 @@
 //! Read IDENTITY.md and JOURNAL.md for the full story.
 //!
 //! Usage:
-//!   ANTHROPIC_API_KEY=sk-... cargo run
-//!   ANTHROPIC_API_KEY=sk-... cargo run -- --model claude-opus-4-6
-//!   ANTHROPIC_API_KEY=sk-... cargo run -- --skills ./skills
+//!   MINIMAX_API_KEY=... cargo run
+//!   MINIMAX_API_KEY=... cargo run -- --model MiniMax-Text-01
+//!   MINIMAX_API_KEY=... cargo run -- --skills ./skills
 //!   echo "prompt" | cargo run  (piped mode: single prompt, no REPL)
 //!
 //! Commands:
@@ -16,7 +16,8 @@
 
 use std::io::{self, BufRead, IsTerminal, Read, Write};
 use yoagent::agent::Agent;
-use yoagent::provider::AnthropicProvider;
+use std::collections::HashMap;
+use yoagent::provider::{model::ApiProtocol, ModelConfig, OpenAiCompatProvider};
 use yoagent::skills::SkillSet;
 use yoagent::tools::default_tools;
 use yoagent::*;
@@ -55,7 +56,7 @@ fn print_help() {
     println!("  /model <name>     Switch model mid-session");
     println!();
     println!("Environment:");
-    println!("  ANTHROPIC_API_KEY  API key for Anthropic (required)");
+    println!("  MINIMAX_API_KEY    MiniMax API key (required)");
     println!("  API_KEY            Alternative env var for API key");
 }
 
@@ -89,12 +90,12 @@ async fn main() {
         return;
     }
 
-    let api_key = match std::env::var("ANTHROPIC_API_KEY").or_else(|_| std::env::var("API_KEY")) {
+    let api_key = match std::env::var("MINIMAX_API_KEY").or_else(|_| std::env::var("API_KEY")) {
         Ok(key) if !key.is_empty() => key,
         _ => {
             eprintln!("{RED}error:{RESET} No API key found.");
-            eprintln!("Set ANTHROPIC_API_KEY or API_KEY environment variable.");
-            eprintln!("Example: ANTHROPIC_API_KEY=sk-ant-... cargo run");
+            eprintln!("Set MINIMAX_API_KEY environment variable.");
+            eprintln!("Example: MINIMAX_API_KEY=... cargo run");
             std::process::exit(1);
         }
     };
@@ -104,7 +105,7 @@ async fn main() {
         .position(|a| a == "--model")
         .and_then(|i| args.get(i + 1))
         .cloned()
-        .unwrap_or_else(|| "claude-opus-4-6".into());
+        .unwrap_or_else(|| "MiniMax-Text-01".into());
 
     let skill_dirs: Vec<String> = args
         .iter()
@@ -125,9 +126,23 @@ async fn main() {
         }
     };
 
-    let mut agent = Agent::new(AnthropicProvider)
+    let minimax_config = ModelConfig {
+        id: model.clone(),
+        name: model.clone(),
+        api: ApiProtocol::OpenAiCompletions,
+        provider: "minimax".into(),
+        base_url: "https://api.minimax.chat/v1".into(),
+        reasoning: false,
+        context_window: 1_000_000,
+        max_tokens: 8192,
+        cost: Default::default(),
+        headers: HashMap::new(),
+        compat: None,
+    };
+
+    let mut agent = Agent::new(OpenAiCompatProvider)
         .with_system_prompt(SYSTEM_PROMPT)
-        .with_model(&model)
+        .with_model_config(minimax_config.clone())
         .with_api_key(&api_key)
         .with_skills(skills.clone())
         .with_tools(default_tools());
@@ -179,9 +194,9 @@ async fn main() {
         match input {
             "/quit" | "/exit" => break,
             "/clear" => {
-                agent = Agent::new(AnthropicProvider)
+                agent = Agent::new(OpenAiCompatProvider)
                     .with_system_prompt(SYSTEM_PROMPT)
-                    .with_model(&model)
+                    .with_model_config(minimax_config.clone())
                     .with_api_key(&api_key)
                     .with_skills(skills.clone())
                     .with_tools(default_tools());
@@ -190,9 +205,22 @@ async fn main() {
             }
             s if s.starts_with("/model ") => {
                 let new_model = s.trim_start_matches("/model ").trim();
-                agent = Agent::new(AnthropicProvider)
+                let new_config = ModelConfig {
+                    id: new_model.into(),
+                    name: new_model.into(),
+                    api: ApiProtocol::OpenAiCompletions,
+                    provider: "minimax".into(),
+                    base_url: "https://api.minimax.chat/v1".into(),
+                    reasoning: false,
+                    context_window: 1_000_000,
+                    max_tokens: 8192,
+                    cost: Default::default(),
+                    headers: HashMap::new(),
+                    compat: None,
+                };
+                agent = Agent::new(OpenAiCompatProvider)
                     .with_system_prompt(SYSTEM_PROMPT)
-                    .with_model(new_model)
+                    .with_model_config(new_config)
                     .with_api_key(&api_key)
                     .with_skills(skills.clone())
                     .with_tools(default_tools());

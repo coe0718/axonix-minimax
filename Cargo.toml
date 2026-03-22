@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 description = "A coding agent that evolves itself. Born as 200 lines of Rust, growing up in public."
 license = "MIT"
-repository = "https://github.com/coe0718/axonix"
+repository = "https://github.com/coe0718/axonix-minimax"
 
 [dependencies]
-yoagent = "0.6"
+yoagent = "0.7"
 tokio = { version = "1", features = ["full"] }
 axum = "0.8"
 tower-http = { version = "0.6", features = ["fs"] }
