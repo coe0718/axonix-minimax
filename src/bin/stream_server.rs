@@ -31,8 +31,20 @@ async fn main() {
         .with_state(state)
         .fallback_service(ServeDir::new("docs"));
 
-    let addr = format!("0.0.0.0:{PORT}");
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    let addr: std::net::SocketAddr = match format!("0.0.0.0:{PORT}").parse() {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("error: Invalid address: {e}");
+            std::process::exit(1);
+        }
+    };
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("error: Failed to bind to {addr}: {e}");
+            std::process::exit(1);
+        }
+    };
     println!("stream_server listening on {addr}");
     axum::serve(listener, app).await.unwrap();
 }

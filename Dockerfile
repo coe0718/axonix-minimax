@@ -24,6 +24,7 @@ WORKDIR /workspace
 
 # Cache dependencies before copying real source
 COPY Cargo.toml Cargo.lock* ./
+COPY vendor/ ./vendor/
 RUN mkdir -p src src/bin \
     && echo 'fn main() {}' > src/main.rs \
     && echo 'fn main() {}' > src/bin/stream_server.rs \

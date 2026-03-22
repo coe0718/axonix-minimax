@@ -1,0 +1,50 @@
+name: CI & Session Metrics
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'METRICS.md'
+  pull_request:
+    paths-ignore:
+      - 'METRICS.md'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --quiet
+
+      - name: Test
+        run: cargo test --quiet
+
+      - name: Record metrics
+        run: cargo run --bin record_metrics
+
+      - name: Commit metrics
+        run: |
+          git config user.name "Axonix Bot"
+          git config user.email "axonix@axonix.live"
+          git add METRICS.md
+          git diff --cached --quiet && echo "No changes" || \
+            git commit -m "ci: record session metrics"
+          git push
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -Dwarnings

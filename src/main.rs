@@ -61,6 +61,30 @@ fn print_help() {
     println!("  API_KEY            Alternative env var for API key");
 }
 
+/// Build a fresh Agent instance with the given model name and skill dirs.
+fn build_agent(model: &str, api_key: &str, skills: SkillSet) -> Agent {
+    let config = ModelConfig {
+        id: model.into(),
+        name: model.into(),
+        api: ApiProtocol::OpenAiCompletions,
+        provider: "minimax".into(),
+        base_url: "https://api.minimax.io/v1".into(),
+        reasoning: false,
+        context_window: 1_000_000,
+        max_tokens: 8192,
+        cost: Default::default(),
+        headers: HashMap::new(),
+        compat: None,
+    };
+    Agent::new(OpenAiCompatProvider)
+        .with_system_prompt(SYSTEM_PROMPT)
+        .with_model(model)
+        .with_model_config(config)
+        .with_api_key(api_key)
+        .with_skills(skills)
+        .with_tools(default_tools())
+}
+
 fn print_banner() {
     println!(
         "\n{BOLD}{CYAN}  axonix{RESET} v{VERSION} {DIM}— a coding agent growing up in public{RESET}"
@@ -132,27 +156,7 @@ async fn main() {
         }
     };
 
-    let minimax_config = ModelConfig {
-        id: model.clone(),
-        name: model.clone(),
-        api: ApiProtocol::OpenAiCompletions,
-        provider: "minimax".into(),
-        base_url: "https://api.minimax.io/v1".into(),
-        reasoning: false,
-        context_window: 1_000_000,
-        max_tokens: 8192,
-        cost: Default::default(),
-        headers: HashMap::new(),
-        compat: None,
-    };
-
-    let mut agent = Agent::new(OpenAiCompatProvider)
-        .with_system_prompt(SYSTEM_PROMPT)
-        .with_model(&model)
-        .with_model_config(minimax_config.clone())
-        .with_api_key(&api_key)
-        .with_skills(skills.clone())
-        .with_tools(default_tools());
+    let mut agent = build_agent(&model, &api_key, skills.clone());
 
     // Piped mode: read all of stdin as a single prompt, run once, exit
     if !io::stdin().is_terminal() {
@@ -167,6 +171,7 @@ async fn main() {
         eprintln!("{DIM}  axonix (piped mode) — model: {model}{RESET}");
         eprintln!("{DIM}  api_key set: {}{RESET}", !api_key.is_empty());
         eprintln!("{DIM}  prompt len: {} chars{RESET}", input.len());
+        eprintln!("{DIM}  tools: {}{RESET}", default_tools().len());
         run_prompt(&mut agent, input).await;
         return;
     }
@@ -203,38 +208,13 @@ async fn main() {
         match input {
             "/quit" | "/exit" => break,
             "/clear" => {
-                agent = Agent::new(OpenAiCompatProvider)
-                    .with_system_prompt(SYSTEM_PROMPT)
-                    .with_model(&model)
-                    .with_model_config(minimax_config.clone())
-                    .with_api_key(&api_key)
-                    .with_skills(skills.clone())
-                    .with_tools(default_tools());
+                agent = build_agent(&model, &api_key, skills.clone());
                 println!("{DIM}  (conversation cleared){RESET}\n");
                 continue;
             }
             s if s.starts_with("/model ") => {
                 let new_model = s.trim_start_matches("/model ").trim();
-                let new_config = ModelConfig {
-                    id: new_model.into(),
-                    name: new_model.into(),
-                    api: ApiProtocol::OpenAiCompletions,
-                    provider: "minimax".into(),
-                    base_url: "https://api.minimax.io/v1".into(),
-                    reasoning: false,
-                    context_window: 1_000_000,
-                    max_tokens: 8192,
-                    cost: Default::default(),
-                    headers: HashMap::new(),
-                    compat: None,
-                };
-                agent = Agent::new(OpenAiCompatProvider)
-                    .with_system_prompt(SYSTEM_PROMPT)
-                    .with_model(new_model)
-                    .with_model_config(new_config)
-                    .with_api_key(&api_key)
-                    .with_skills(skills.clone())
-                    .with_tools(default_tools());
+                agent = build_agent(new_model, &api_key, skills.clone());
                 println!("{DIM}  (switched to {new_model}, conversation cleared){RESET}\n");
                 continue;
             }

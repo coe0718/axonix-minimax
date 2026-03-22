@@ -1,6 +1,7 @@
 services:
   axonix-minimax:
     build: .
+    user: "1000:1000"
     command: ./scripts/evolve.sh
     volumes:
       - .:/workspace

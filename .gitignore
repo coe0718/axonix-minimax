@@ -1,6 +1,5 @@
 .DS_Store
 /target
-Cargo.lock
 ISSUES_TODAY.md
 ISSUE_RESPONSE*.md
 /tmp/
@@ -12,3 +11,4 @@ CLAUDE_SETUP.md
 .cache/
 SESSION_COUNT
 .ssh/
+vendor/

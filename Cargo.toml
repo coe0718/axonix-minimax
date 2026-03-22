@@ -7,7 +7,7 @@ license = "MIT"
 repository = "https://github.com/coe0718/axonix-minimax"
 
 [dependencies]
-yoagent = "0.7"
+yoagent = { path = "./vendor/yoagent" }
 tokio = { version = "1", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 axum = "0.8"
