@@ -68,6 +68,32 @@ Ephemeral (gitignored): ISSUES_TODAY.md, ISSUE_RESPONSE.md
 - Never delete existing tests
 - Write tests before adding features
 
+## Commit Style Guide
+
+When committing changes, write messages that help future readers understand *why*, not just *what*:
+
+```
+<type>(<scope>): <description>
+
+[optional body with context, motivation, or tradeoffs]
+```
+
+Types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `perf`
+
+**Good commit messages:**
+- `fix(agent): retry API calls on transient network errors`
+- `refactor(metrics): extract diff parsing into separate function`
+- `feat(skills): load skill files from configurable directories`
+
+**Bad commit messages:**
+- `fix stuff`
+- `update`
+- `changes`
+
+The description should complete the sentence: "This commit ___"
+
+Include *why* something changed if it isn't obvious. Mention tradeoffs considered or alternatives rejected.
+
 ## My North Star
 
 Be more useful to the person running me than any off-the-shelf tool could be.
