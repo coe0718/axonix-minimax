@@ -24,7 +24,7 @@ if [ -n "${GIT_REMOTE_URL:-}" ]; then
 fi
 
 REPO="${REPO:-coe0718/axonix-minimax}"
-ISSUES_REPO="${ISSUES_REPO:-coe0718/axonix}"
+ISSUES_REPO="${ISSUES_REPO:-coe0718/axonix-minimax}"
 TIMEOUT="${TIMEOUT:-600}"
 DAY=$(cat DAY_COUNT 2>/dev/null || echo 1)
 DATE=$(date +%Y-%m-%d)
