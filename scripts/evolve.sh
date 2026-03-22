@@ -24,6 +24,7 @@ if [ -n "${GIT_REMOTE_URL:-}" ]; then
 fi
 
 REPO="${REPO:-coe0718/axonix-minimax}"
+ISSUES_REPO="${ISSUES_REPO:-coe0718/axonix}"
 TIMEOUT="${TIMEOUT:-600}"
 DAY=$(cat DAY_COUNT 2>/dev/null || echo 1)
 DATE=$(date +%Y-%m-%d)
@@ -44,10 +45,9 @@ echo ""
 ISSUES_FILE="ISSUES_TODAY.md"
 echo "→ Fetching community issues..."
 if command -v gh &>/dev/null; then
-    gh issue list --repo "$REPO" \
+    gh issue list --repo "$ISSUES_REPO" \
         --state open \
-        --label "agent-input" \
-        --limit 10 \
+        --limit 50 \
         --json number,title,body,labels,reactionGroups \
         > /tmp/issues_raw.json 2>/dev/null || true
 
@@ -162,15 +162,15 @@ if [ -f ISSUE_RESPONSE.md ]; then
 
     if [ -n "$ISSUE_NUM" ] && command -v gh &>/dev/null; then
         gh issue comment "$ISSUE_NUM" \
-            --repo "$REPO" \
-            --body "🤖 **Day $DAY**
+            --repo "$ISSUES_REPO" \
+            --body "🤖 **Day $DAY** (axonix-minimax experiment)
 
 $COMMENT
 
 Commit: $(git rev-parse --short HEAD)" || true
 
         if [ "$STATUS" = "fixed" ]; then
-            gh issue close "$ISSUE_NUM" --repo "$REPO" || true
+            gh issue close "$ISSUE_NUM" --repo "$ISSUES_REPO" || true
             echo "  Closed issue #$ISSUE_NUM"
         else
             echo "  Commented on issue #$ISSUE_NUM (status: $STATUS)"
