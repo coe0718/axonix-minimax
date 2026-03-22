@@ -16,7 +16,7 @@ use tokio_stream::StreamExt;
 use tower_http::services::ServeDir;
 
 const CHANNEL_CAPACITY: usize = 1024;
-const PORT: u16 = 7040;
+const PORT: u16 = 7041;
 
 type AppState = Arc<broadcast::Sender<String>>;
 
