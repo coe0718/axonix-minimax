@@ -1,12 +1,9 @@
 use axum::{
-    Router,
     body::Bytes,
     extract::State,
-    response::{
-        Sse,
-        sse::Event,
-    },
+    response::{sse::Event, Sse},
     routing::{get, post},
+    Router,
 };
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -46,7 +43,9 @@ async fn main() {
         }
     };
     println!("stream_server listening on {addr}");
-    axum::serve(listener, app).await.unwrap();
+    if let Err(e) = axum::serve(listener, app).await {
+        eprintln!("stream_server error: {e}");
+    }
 }
 
 async fn pipe(State(tx): State<AppState>, body: Bytes) {

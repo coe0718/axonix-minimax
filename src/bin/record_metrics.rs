@@ -112,25 +112,35 @@ fn count_test_result(output: &str, marker: &str) -> u32 {
 }
 
 fn get_git_diff_stats() -> (u32, u32, u32) {
-    // Get stats from the last commit
+    // Get the session wrap-up commit (skip the DAY_COUNT update that follows it).
+    // Session flow: <prev-wrap> <this-wrap> <day-count>
+    // We want the diff of <this-wrap> vs <prev-wrap>, i.e. what code the session actually changed.
     let output = Command::new("git")
-        .args(["log", "-1", "--format=%H"])
+        .args(["log", "-2", "--format=%H"])
         .output()
         .ok();
 
-    let commit = match output {
-        Some(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
+    let commits: Vec<String> = match output {
+        Some(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+            .lines()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
         _ => return (0, 0, 0),
     };
 
-    // Get diff against parent
+    // commits[0] = latest (DAY_COUNT update), commits[1] = this session's wrap-up
+    let session_commit = commits.get(1).cloned();
+    let prev_commit = commits.get(2).cloned();
+
+    let from = match (session_commit, prev_commit) {
+        (Some(sc), Some(pc)) => format!("{pc}..{sc}"),
+        (Some(sc), None) => format!("{sc}^..{sc}"),
+        _ => return (0, 0, 0),
+    };
+
     let diff_output = Command::new("git")
-        .args([
-            "diff",
-            &format!("{commit}^..{commit}"),
-            "--stat",
-            "--stat-width=200",
-        ])
+        .args(["diff", &from, "--stat", "--stat-width=200"])
         .output()
         .ok();
 

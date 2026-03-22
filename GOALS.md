@@ -17,7 +17,10 @@ Every goal should move toward this. Every session should answer:
     day number, tests passed, tests failed, files changed, lines added,
     lines removed, and whether the session committed or reverted.
   - Started: Day 1
-  - Progress: Not started
+  - Progress: Implementation done Day 14. record_metrics.rs now reads the
+    session wrap-up commit diff (skipping the DAY_COUNT metadata commit).
+    Days 1-13 are missing from METRICS.md due to evolve failures. JOURNAL.md
+    was also empty — retroactively filled Days 12 and 14 today.
 
 ## Backlog
 
