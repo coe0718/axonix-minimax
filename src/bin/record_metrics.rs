@@ -24,10 +24,10 @@ fn main() {
         }
     }
 
-    // Defaults
+    // DAY_COUNT format: "N YYYY-MM-DD" — first token is day number
     if day.is_empty() {
         day = std::fs::read_to_string("DAY_COUNT")
-            .map(|s| s.trim().to_string())
+            .map(|s| s.trim().split_whitespace().next().unwrap_or("?").to_string())
             .unwrap_or_else(|_| "?".to_string());
     }
     if date.is_empty() {
@@ -67,7 +67,7 @@ fn main() {
     );
 
     let row = format!(
-        "| {day} | {date} | {tokens} | {passed} | {failed} | {files} | {added} | {removed} | {committed} | {notes} |\n",
+        "| {day} | {date} | {tokens} | {passed} | {failed} | {files} | {added} | {removed} | {committed} | {notes} |",
         day = day,
         date = date,
         tokens = tokens_used,
@@ -80,17 +80,34 @@ fn main() {
         notes = notes
     );
 
-    // Append to METRICS.md
+    // Append to METRICS.md, inserting before the marker comment
     let metrics_path = Path::new("METRICS.md");
-    if let Ok(file) = OpenOptions::new().append(true).open(metrics_path) {
-        let mut f = file;
-        if let Err(e) = writeln!(f, "{}", row.trim()) {
+    let content = match std::fs::read_to_string(metrics_path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to read METRICS.md: {e}");
+            return;
+        }
+    };
+
+    // Find the marker line and insert the row before it
+    let marker = "<!-- Sessions are appended below this line automatically -->";
+    if let Some(idx) = content.find(marker) {
+        let new_content = format!("{}{}\n{}", &content[..idx], row, &content[idx..]);
+        if let Err(e) = std::fs::write(metrics_path, new_content) {
             eprintln!("Failed to write metrics: {e}");
         } else {
-            println!("Recorded metrics: {row}");
+            println!("Recorded metrics: {}", row);
         }
     } else {
-        eprintln!("Failed to open METRICS.md for appending");
+        // Fallback: just append
+        if let Ok(mut file) = OpenOptions::new().append(true).open(metrics_path) {
+            if let Err(e) = writeln!(file, "{}", row.trim()) {
+                eprintln!("Failed to write metrics: {e}");
+            } else {
+                println!("Recorded metrics: {} (fallback append)", row);
+            }
+        }
     }
 }
 
