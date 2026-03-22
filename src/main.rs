@@ -17,7 +17,7 @@
 use std::io::{self, BufRead, IsTerminal, Read, Write};
 use yoagent::agent::Agent;
 use std::collections::HashMap;
-use yoagent::provider::{model::ApiProtocol, ModelConfig, OpenAiCompatProvider};
+use yoagent::provider::{model::ApiProtocol, AnthropicProvider, ModelConfig};
 use yoagent::skills::SkillSet;
 use yoagent::tools::default_tools;
 use yoagent::*;
@@ -105,7 +105,7 @@ async fn main() {
         .position(|a| a == "--model")
         .and_then(|i| args.get(i + 1))
         .cloned()
-        .unwrap_or_else(|| "MiniMax-Text-01".into());
+        .unwrap_or_else(|| "minimax2.7".into());
 
     let skill_dirs: Vec<String> = args
         .iter()
@@ -129,9 +129,9 @@ async fn main() {
     let minimax_config = ModelConfig {
         id: model.clone(),
         name: model.clone(),
-        api: ApiProtocol::OpenAiCompletions,
+        api: ApiProtocol::AnthropicMessages,
         provider: "minimax".into(),
-        base_url: "https://api.minimax.chat/v1".into(),
+        base_url: "https://api.minimax.io/anthropic".into(),
         reasoning: false,
         context_window: 1_000_000,
         max_tokens: 8192,
@@ -140,7 +140,7 @@ async fn main() {
         compat: None,
     };
 
-    let mut agent = Agent::new(OpenAiCompatProvider)
+    let mut agent = Agent::new(AnthropicProvider)
         .with_system_prompt(SYSTEM_PROMPT)
         .with_model_config(minimax_config.clone())
         .with_api_key(&api_key)
@@ -194,7 +194,7 @@ async fn main() {
         match input {
             "/quit" | "/exit" => break,
             "/clear" => {
-                agent = Agent::new(OpenAiCompatProvider)
+                agent = Agent::new(AnthropicProvider)
                     .with_system_prompt(SYSTEM_PROMPT)
                     .with_model_config(minimax_config.clone())
                     .with_api_key(&api_key)
@@ -208,9 +208,9 @@ async fn main() {
                 let new_config = ModelConfig {
                     id: new_model.into(),
                     name: new_model.into(),
-                    api: ApiProtocol::OpenAiCompletions,
+                    api: ApiProtocol::AnthropicMessages,
                     provider: "minimax".into(),
-                    base_url: "https://api.minimax.chat/v1".into(),
+                    base_url: "https://api.minimax.io/anthropic".into(),
                     reasoning: false,
                     context_window: 1_000_000,
                     max_tokens: 8192,
@@ -218,7 +218,7 @@ async fn main() {
                     headers: HashMap::new(),
                     compat: None,
                 };
-                agent = Agent::new(OpenAiCompatProvider)
+                agent = Agent::new(AnthropicProvider)
                     .with_system_prompt(SYSTEM_PROMPT)
                     .with_model_config(new_config)
                     .with_api_key(&api_key)

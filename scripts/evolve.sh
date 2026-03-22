@@ -9,18 +9,19 @@
 #   codex --provider github-copilot  (first run — completes device login flow)
 #
 # Environment:
-#   REPO     — GitHub repo (default: coe0718/axonix-codex)
-#   TIMEOUT  — Max session time in seconds (default: 600)
+#   MINIMAX_API_KEY — required
+#   REPO            — GitHub repo (default: coe0718/axonix-minimax)
+#   TIMEOUT         — Max session time in seconds (default: 600)
 
 set -euo pipefail
 
-REPO="${REPO:-coe0718/axonix-codex}"
+REPO="${REPO:-coe0718/axonix-minimax}"
 TIMEOUT="${TIMEOUT:-600}"
 DAY=$(cat DAY_COUNT 2>/dev/null || echo 1)
 DATE=$(date +%Y-%m-%d)
 
 echo "=== Day $DAY: $DATE ==="
-echo "Provider: github-copilot (Codex)"
+echo "Provider: MiniMax (minimax2.7 via Anthropic-compat API)"
 echo "Timeout: ${TIMEOUT}s"
 echo ""
 
@@ -118,10 +119,11 @@ comment: [your 2-3 sentence response to the person]
 Now begin. Read IDENTITY.md first.
 PROMPT
 
-${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} codex \
-    --provider github-copilot \
-    --approval-mode full-auto \
-    "$(cat "$PROMPT_FILE")" 2>&1 \
+${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} \
+    ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic \
+    ANTHROPIC_API_KEY="${MINIMAX_API_KEY}" \
+    cargo run --quiet -- --model minimax2.7 --skills ./skills \
+    < "$PROMPT_FILE" 2>&1 \
     | tee /tmp/session.log || true
 
 rm -f "$PROMPT_FILE"
