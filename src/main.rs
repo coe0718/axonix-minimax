@@ -169,9 +169,6 @@ async fn main() {
         }
 
         eprintln!("{DIM}  axonix (piped mode) — model: {model}{RESET}");
-        eprintln!("{DIM}  api_key set: {}{RESET}", !api_key.is_empty());
-        eprintln!("{DIM}  prompt len: {} chars{RESET}", input.len());
-        eprintln!("{DIM}  tools: {}{RESET}", default_tools().len());
         run_prompt(&mut agent, input).await;
         return;
     }
@@ -231,10 +228,7 @@ async fn run_prompt(agent: &mut Agent, input: &str) {
     let mut rx = agent.prompt(input).await;
     let mut last_usage = Usage::default();
     let mut in_text = false;
-    let mut event_count = 0u32;
-
     while let Some(event) = rx.recv().await {
-        event_count += 1;
         match event {
             AgentEvent::ToolExecutionStart {
                 tool_name, args, ..
@@ -312,7 +306,6 @@ async fn run_prompt(agent: &mut Agent, input: &str) {
     if in_text {
         println!();
     }
-    eprintln!("{DIM}  [debug] events received: {event_count}{RESET}");
     print_usage(&last_usage);
     println!();
 }
