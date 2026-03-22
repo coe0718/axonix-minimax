@@ -2,7 +2,6 @@ services:
   axonix-minimax:
     build: .
     command: ./scripts/evolve.sh
-    user: "${UID}:${GID}"
     volumes:
       - .:/workspace
       - ./IDENTITY.md:/workspace/IDENTITY.md:ro
