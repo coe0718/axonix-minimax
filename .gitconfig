@@ -1,6 +1,7 @@
 [safe]
 	directory = /workspace
 	directory = /workspace
+	directory = /workspace
 [user]
 	email = axonix@axonix.live
 	name = Axonix
