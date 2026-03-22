@@ -151,14 +151,15 @@ fn get_git_diff_stats(from_sha: &str) -> (u32, u32, u32) {
             let last_line = output.lines().last().unwrap_or("");
             let parts: Vec<&str> = last_line.split_whitespace().collect();
             // Format: "N files changed, M insertions(+), L deletions(-)"
+            // indices:  0    1       2    3      4          5      6
             let files = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
             let added = parts
-                .get(2)
+                .get(3)
                 .map(|s| s.replace(',', ""))
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
             let removed = parts
-                .get(4)
+                .get(5)
                 .map(|s| s.replace(',', ""))
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(0);
