@@ -119,9 +119,10 @@ comment: [your 2-3 sentence response to the person]
 Now begin. Read IDENTITY.md first.
 PROMPT
 
+export ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic
+export ANTHROPIC_API_KEY="${MINIMAX_API_KEY}"
+
 ${TIMEOUT_CMD:+$TIMEOUT_CMD "$TIMEOUT"} \
-    ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic \
-    ANTHROPIC_API_KEY="${MINIMAX_API_KEY}" \
     cargo run --quiet -- --model minimax2.7 --skills ./skills \
     < "$PROMPT_FILE" 2>&1 \
     | tee /tmp/session.log || true
