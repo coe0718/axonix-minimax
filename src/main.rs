@@ -15,6 +15,7 @@
 //!   /model <name>   Switch model mid-session
 
 use std::io::{self, BufRead, IsTerminal, Read, Write};
+use tracing_subscriber::EnvFilter;
 use yoagent::agent::Agent;
 use std::collections::HashMap;
 use yoagent::provider::{model::ApiProtocol, ModelConfig, OpenAiCompatProvider};
@@ -78,6 +79,11 @@ fn print_usage(usage: &Usage) {
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
+        .init();
+
     let args: Vec<String> = std::env::args().collect();
 
     // Handle --help and --version before anything else
