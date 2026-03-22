@@ -142,6 +142,7 @@ async fn main() {
 
     let mut agent = Agent::new(OpenAiCompatProvider)
         .with_system_prompt(SYSTEM_PROMPT)
+        .with_model(&model)
         .with_model_config(minimax_config.clone())
         .with_api_key(&api_key)
         .with_skills(skills.clone())
@@ -158,6 +159,8 @@ async fn main() {
         }
 
         eprintln!("{DIM}  axonix (piped mode) — model: {model}{RESET}");
+        eprintln!("{DIM}  api_key set: {}{RESET}", !api_key.is_empty());
+        eprintln!("{DIM}  prompt len: {} chars{RESET}", input.len());
         run_prompt(&mut agent, input).await;
         return;
     }
@@ -196,6 +199,7 @@ async fn main() {
             "/clear" => {
                 agent = Agent::new(OpenAiCompatProvider)
                     .with_system_prompt(SYSTEM_PROMPT)
+                    .with_model(&model)
                     .with_model_config(minimax_config.clone())
                     .with_api_key(&api_key)
                     .with_skills(skills.clone())
@@ -208,9 +212,9 @@ async fn main() {
                 let new_config = ModelConfig {
                     id: new_model.into(),
                     name: new_model.into(),
-                    api: ApiProtocol::AnthropicMessages,
+                    api: ApiProtocol::OpenAiCompletions,
                     provider: "minimax".into(),
-                    base_url: "https://api.minimax.io/anthropic/v1".into(),
+                    base_url: "https://api.minimax.io/v1".into(),
                     reasoning: false,
                     context_window: 1_000_000,
                     max_tokens: 8192,
@@ -220,6 +224,7 @@ async fn main() {
                 };
                 agent = Agent::new(OpenAiCompatProvider)
                     .with_system_prompt(SYSTEM_PROMPT)
+                    .with_model(new_model)
                     .with_model_config(new_config)
                     .with_api_key(&api_key)
                     .with_skills(skills.clone())
@@ -240,8 +245,10 @@ async fn run_prompt(agent: &mut Agent, input: &str) {
     let mut rx = agent.prompt(input).await;
     let mut last_usage = Usage::default();
     let mut in_text = false;
+    let mut event_count = 0u32;
 
     while let Some(event) = rx.recv().await {
+        event_count += 1;
         match event {
             AgentEvent::ToolExecutionStart {
                 tool_name, args, ..
@@ -319,6 +326,7 @@ async fn run_prompt(agent: &mut Agent, input: &str) {
     if in_text {
         println!();
     }
+    eprintln!("{DIM}  [debug] events received: {event_count}{RESET}");
     print_usage(&last_usage);
     println!();
 }
