@@ -129,12 +129,6 @@ fn is_valid_directive_line(line: &str) -> bool {
         return false;
     }
 
-    // Standard directive: first token is alphanumeric/hyphen/underscore
-    let first_token = trimmed.split_whitespace().next().unwrap_or("");
-    if first_token.is_empty() {
-        return false;
-    }
-
     // Accept lines that start with { but aren't a full { ... } block
     // (these are placeholder expansions like {host}.example.com)
     if first_token.starts_with('{') {
