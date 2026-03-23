@@ -22,6 +22,8 @@ RUN git config --system --add safe.directory /workspace \
     && git config --system user.email "axonix@axonix.live" \
     && git config --system user.name "Axonix"
 
+ENV CARGO_INCREMENTAL=0
+
 WORKDIR /workspace
 
 # Cache dependencies before copying real source
