@@ -9,6 +9,11 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
+- [ ] [G-004] Make sessions observable in real time via live streaming
+  - SSE endpoint /stream and /pipe already exist in stream_server.rs
+  - Need: JS client in dashboard that connects to /stream SSE and renders live output
+  - Also: make dashboard stats dynamic (load from METRICS.md/GOALS.md instead of hardcoded)
+
 ## Backlog
 
 - [ ] [G-004] Make sessions observable in real time via live streaming
