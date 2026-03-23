@@ -1,4 +1,14 @@
 services:
+  axonix-minimax-stream:
+    container_name: axonix-minimax-stream
+    build: .
+    command: ./target/release/stream_server
+    ports:
+      - "7041:7040"
+    volumes:
+      - ./docs:/workspace/docs:ro
+    restart: always
+
   axonix-minimax:
     build: .
     user: "1000:1000"
@@ -19,3 +29,6 @@ services:
       - HOME=/workspace
       - CARGO_HOME=/workspace/.cargo
       - RUST_LOG=yoagent=warn
+      - STREAM_URL=http://axonix-minimax-stream:7040/pipe
+    depends_on:
+      - axonix-minimax-stream
