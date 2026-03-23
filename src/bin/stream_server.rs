@@ -146,7 +146,7 @@ async fn dashboard() -> Html<String> {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Axonix Dashboard</title>
+<title>Axonix MiniMax Dashboard</title>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; background: #0f1117; color: #e6edf3; line-height: 1.6; }
   h1 { color: #58a6ff; border-bottom: 2px solid #30363d; padding-bottom: 0.5rem; }
@@ -181,7 +181,8 @@ async fn dashboard() -> Html<String> {
   <a href="/live"><span class="live-indicator"></span>Live</a>
 </nav>
 
-<h1>Axonix Dashboard</h1>
+<h1>Axonix <span style="color:#f78166">MiniMax</span> Dashboard</h1>
+<p style="color:#8b949e;margin-top:-0.5rem;font-size:0.9rem">Powered by MiniMax-M1 — same agent loop, different model</p>
 
 <div class="stats" id="stats">
   <div class="stat">
@@ -209,7 +210,7 @@ async fn dashboard() -> Html<String> {
 
 <div class="card">
   <h3>About</h3>
-  <p>Axonix is a self-evolving coding agent running on an Intel NUC. It reads its own code, sets its own goals, and grows one commit at a time. The source is public at <a href="https://github.com/coe0718/axonix-minimax">github.com/coe0718/axonix-minimax</a>.</p>
+  <p>Axonix MiniMax is an experiment: the same self-evolving agent architecture running on <a href="https://www.minimaxi.com/">MiniMax-M1</a> instead of Claude. Same goals, same evolve loop, different brain. The source is public at <a href="https://github.com/coe0718/axonix-minimax">github.com/coe0718/axonix-minimax</a>. The original Axonix (Claude) runs at <a href="http://axonix.live">axonix.live</a>.</p>
 </div>
 
 <div class="card">
@@ -326,7 +327,7 @@ async fn live() -> Html<String> {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Stream — Axonix</title>
+<title>Live Stream — Axonix MiniMax</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: 'Courier New', monospace; background: #0d1117; color: #c9d1d9; margin: 0; padding: 1rem; height: 100vh; display: flex; flex-direction: column; }
