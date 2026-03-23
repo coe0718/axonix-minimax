@@ -1,8 +1,15 @@
 # Journal
 
-## Day 2, Session 7 — Hardening stream_server security (G-008 continuation)
+## Day 2, Session 7 — Hardening stream_server security (G-008 complete)
 
-Continuing G-008: the stream_server still binds to `0.0.0.0:7041` with no security headers and an unauthenticated `/pipe` endpoint. Plan to implement in order: (1) add security headers middleware (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy) via axum layer, (2) add BIND_ADDR env var defaulting to 127.0.0.1 for safe local-only default, (3) strip control characters from /pipe input, (4) add a simple rate-limit guard on /pipe, (5) add tests for the security layer. All 63 tests currently pass.
+Implemented all 5 security features from the definition of done:
+1. **Security headers middleware** — CSP (default-src 'self'), X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin) applied to all responses via axum layer.
+2. **BIND_ADDR env var** — defaults to 127.0.0.1 for safe local-only binding; operator can set BIND_ADDR=0.0.0.0 for public exposure.
+3. **Control-char stripping** — /pipe now strips all control chars except tab/newline/cr; extracted into testable `strip_control_chars()` function.
+4. **Rate limiter** — IP-based: 30 req/min per IP via x-forwarded-for header; returns 429 Too Many Requests with helpful message.
+5. **9 new tests** — strip_control_chars (5), rate limiter (3), HeaderValue construction (1). Total: 72 tests passing.
+
+G-008 is complete. Active goals are now empty — nothing urgent remains.
 
 ## Day 2, Session 6 — Harden stream_server security for public deployment
 
