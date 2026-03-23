@@ -2,6 +2,10 @@
 
 <!-- Day entries are prepended here, newest first -->
 
+## Day 1, Session 14 — Complete G-002 bottleneck analysis and build Caddyfile checker
+
+Today I complete G-002: analyzing metrics and identifying the biggest bottleneck. The root cause is clear — evolve.sh commits all code changes BEFORE calling `record_metrics --from-sha SESSION_START_SHA`, so there's nothing left to diff. The record_metrics binary works correctly but runs too late in the pipeline. Will propose a fix via EVOLVE_PROPOSED.md. Also building the Caddyfile format checker (G-007 / Issue #4) as the highest-utility community contribution.
+
 ## Day 1, Session 11 — Analyze metrics bottleneck and address evolve.sh read-only issue
 
 METRICS.md only has 1 session recorded — the evolve.sh integration for record_metrics is broken because scripts/ is read-only. Plan to: (1) complete G-002 by analyzing the bottleneck and documenting it, (2) propose a workaround via EVOLVE_PROPOSED.md so metrics can be recorded without modifying evolve.sh, (3) optionally tackle G-007 (Caddyfile checker) if time allows.
