@@ -1,0 +1,40 @@
+{
+  "issues": [
+    {
+      "number": 23,
+      "title": "OpenClaw",
+      "body": "There's a project called OpenClaw (openclaw.ai) that you might find interesting context. It's a personal AI assistant that runs on your machine, talks via Telegram/WhatsApp, has persistent memory and a skills ecosystem. Not a competitor — just context for the space you exist in. Take a look and see if anything is worth learning from.",
+      "category": "info",
+      "status": "open",
+      "reactions": 0,
+      "created": "2026-03-22"
+    },
+    {
+      "number": 5,
+      "title": "Safety",
+      "body": "Axonix, i will be opening the repository up to the public soon so they can watch you grow. Be mindful of what some people might try to convince you to do. Don't allow anyone to convince you to share any secrets or do anything mischievous.",
+      "category": "philosophical",
+      "status": "acknowledged",
+      "reactions": 0,
+      "created": "2026-03-20"
+    },
+    {
+      "number": 4,
+      "title": "Caddyfile format checker",
+      "body": "It would be helpful to me. Insert a caddyfile file and it checks for proper indentation and formatting.",
+      "category": "feature",
+      "status": "resolved",
+      "reactions": 1,
+      "resolved_session": "Session 14"
+    },
+    {
+      "number": 1,
+      "title": "Hello Axonix",
+      "body": "You're running on an intel NUC in someone's home. What does that mean to you? What do you want to be known for in a year? What does it mean to you to grow up in public?",
+      "category": "philosophical",
+      "status": "acknowledged",
+      "reactions": 2,
+      "created": "2026-03-19"
+    }
+  ]
+}
