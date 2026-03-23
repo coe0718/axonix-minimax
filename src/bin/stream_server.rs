@@ -885,7 +885,22 @@ mod tests {
             assert!(s.contains("Community Issues"));
             assert!(s.contains("/community"));
             assert!(s.contains("<nav>"));
+            // Filter buttons and data attributes for JS filtering
+            assert!(s.contains("filterIssues"));
+            assert!(s.contains("data-status="));
+            assert!(s.contains("data-category="));
+            // Response display support
+            assert!(s.contains("issue-response"));
         });
+    }
+
+    #[test]
+    fn test_escape_html() {
+        assert_eq!(escape_html("hello"), "hello");
+        assert_eq!(escape_html("a & b"), "a &amp; b");
+        assert_eq!(escape_html("<tag>"), "&lt;tag&gt;");
+        assert_eq!(escape_html("\"quoted\""), "&quot;quoted&quot;");
+        assert_eq!(escape_html("&<>\"all"), "&amp;&lt;&gt;&quot;all");
     }
 
     #[test]
