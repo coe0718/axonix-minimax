@@ -179,6 +179,7 @@ async fn main() {
         .route("/journal", get(journal))
         .route("/live", get(live))
         .route("/community", get(community))
+        .route("/sessions", get(sessions))
         .route("/api/stats", get(api_stats))
         .route("/api/issues", get(api_issues))
         .with_state(state)
@@ -275,6 +276,7 @@ async fn dashboard() -> Html<String> {
   <a href="/journal">Journal</a>
   <a href="/live"><span class="live-indicator"></span>Live</a>
   <a href="/community">Community</a>
+  <a href="/sessions">Sessions</a>
 </nav>
 
 <h1>Axonix <span style="color:#f78166">MiniMax</span> Dashboard</h1>
@@ -364,6 +366,81 @@ async fn metrics() -> Html<String> {
 
 async fn journal() -> Html<String> {
     render_markdown_page("Journal", Path::new("JOURNAL.md"))
+}
+
+/// Render the current session log as a styled HTML page.
+async fn sessions() -> Html<String> {
+    let log_content = fs::read_to_string("/tmp/session.log").unwrap_or_else(|_| {
+        "Session log unavailable — stream_server may not be running from the project root.".to_string()
+    });
+
+    let lines_html: String = log_content
+        .lines()
+        .map(|line| {
+            let escaped = html_escape::encode_text(line);
+            if line.starts_with("▶") {
+                // Tool call start
+                format!("<div class=\"line tool-start\">{escaped}</div>")
+            } else if line == "✓" {
+                format!("<div class=\"line ok\">{escaped}</div>")
+            } else if line == "✗" {
+                format!("<div class=\"line fail\">{escaped}</div>")
+            } else if line.is_empty() {
+                "<div class=\"line empty\">&nbsp;</div>".to_string()
+            } else {
+                format!("<div class=\"line\">{escaped}</div>")
+            }
+        })
+        .collect();
+
+    let total_lines = log_content.lines().count();
+
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Log — Axonix</title>
+<style>
+  * {{ box-sizing: border-box; }}
+  body {{ font-family: 'Courier New', monospace; background: #0d1117; color: #c9d1d9; margin: 0; padding: 0; }}
+  nav {{ display: flex; gap: 1.5rem; padding: 1rem 2rem; border-bottom: 1px solid #30363d; background: #161b22; }}
+  nav a {{ color: #58a6ff; text-decoration: none; font-weight: 600; font-family: system-ui, sans-serif; font-size: 1rem; }}
+  nav a:hover {{ color: #79c0ff; }}
+  .header {{ padding: 1.5rem 2rem 1rem; border-bottom: 1px solid #21262d; }}
+  .header h1 {{ margin: 0; color: #58a6ff; font-family: system-ui, sans-serif; }}
+  .header p {{ margin: 0.3rem 0 0; color: #8b949e; font-size: 0.85rem; font-family: system-ui, sans-serif; }}
+  #log {{ padding: 1rem 2rem; font-size: 0.88rem; line-height: 1.6; }}
+  .line {{ padding: 0.1rem 0.5rem; border-radius: 3px; white-space: pre-wrap; word-break: break-all; }}
+  .tool-start {{ color: #d29922; background: #1c2128; }}
+  .ok {{ color: #3fb950; font-weight: bold; }}
+  .fail {{ color: #f85149; font-weight: bold; }}
+  .empty {{ min-height: 1px; }}
+  #clear-btn {{ position: fixed; bottom: 1.5rem; right: 2rem; padding: 0.5rem 1rem; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-family: system-ui, sans-serif; }}
+  #clear-btn:hover {{ background: #30363d; }}
+  .hint {{ color: #484f58; font-size: 0.8rem; margin-top: 0.5rem; font-family: system-ui, sans-serif; }}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/goals">Goals</a>
+  <a href="/metrics">Metrics</a>
+  <a href="/journal">Journal</a>
+  <a href="/live">Live Stream</a>
+  <a href="/community">Community</a>
+</nav>
+<div class="header">
+  <h1>Current Session</h1>
+  <p>{total_lines} lines · log: /tmp/session.log</p>
+  <p class="hint">Updates in real time as the session progresses. Refresh to see latest.</p>
+</div>
+<div id="log">{lines_html}</div>
+</body>
+</html>"#
+    );
+    Html(html)
 }
 
 /// Dynamically compute stats from METRICS.md and GOALS.md.
@@ -706,6 +783,19 @@ mod tests {
             assert!(s.contains("<!DOCTYPE html>"));
             assert!(s.contains("Community Issues"));
             assert!(s.contains("/community"));
+            assert!(s.contains("<nav>"));
+        });
+    }
+
+    #[test]
+    fn test_sessions_page_renders() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let html = sessions().await;
+            let s = html.0.as_str();
+            assert!(s.contains("<!DOCTYPE html>"));
+            assert!(s.contains("Session Log"));
+            assert!(s.contains("/tmp/session.log"));
             assert!(s.contains("<nav>"));
         });
     }
