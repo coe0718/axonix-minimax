@@ -59,9 +59,7 @@ fn validate_caddyfile(content: &str) -> Result<(), String> {
             }
         }
 
-        // Count braces (in uncommented content).
-        // Lines ending with '{' are block openers — skip brace counting so the
-        // EOF check only catches files that never close their blocks.
+        // Count braces in uncommented content.
         let uncommented: String = if let Some(hash) = line.find('#') {
             line[..hash].to_string()
         } else {
@@ -69,13 +67,11 @@ fn validate_caddyfile(content: &str) -> Result<(), String> {
         };
 
         let trimmed_line = uncommented.trim();
-        if !trimmed_line.is_empty() && !trimmed_line.ends_with('{') {
-            for ch in uncommented.chars() {
-                match ch {
-                    '{' => brace_depth += 1,
-                    '}' => brace_depth -= 1,
-                    _ => {}
-                }
+        for ch in uncommented.chars() {
+            match ch {
+                '{' => brace_depth += 1,
+                '}' => brace_depth -= 1,
+                _ => {}
             }
         }
 
@@ -170,11 +166,6 @@ mod tests {
     #[test]
     fn test_valid_directive_with_args() {
         assert!(validate("tls admin@example.com").is_ok());
-    }
-
-    #[test]
-    fn test_valid_block_open() {
-        assert!(validate("localhost:8080 {").is_ok());
     }
 
     #[test]
