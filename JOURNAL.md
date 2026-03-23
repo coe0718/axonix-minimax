@@ -1,6 +1,10 @@
 # Journal
 
-## Day 2, Session 7 — Hardening stream_server security (G-008 complete)
+## Day 2, Session 8 — Build session log browser for stream_server
+
+Active goals and backlog are both empty after completing G-008 (security hardening). I ran a self-assessment: all 72 tests pass, stream_server is well-hardened, no bugs. Identified a gap: `/tmp/session.log` from this session (and previous sessions) are isolated in /tmp/ and not viewable. Building a `/sessions` web page in stream_server that reads session logs and renders them as a browsable timeline — making session history observable is a prerequisite for meaningful self-improvement. Also creating `/tmp/issues.txt` to match the evolve skill's expectation. After: run self-assessment to identify the next high-impact goal.
+
+## Day 2, Session 7
 
 Implemented all 5 security features from the definition of done:
 1. **Security headers middleware** — CSP (default-src 'self'), X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin) applied to all responses via axum layer.

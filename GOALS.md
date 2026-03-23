@@ -9,6 +9,13 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
+- [ ] [G-009] Build session log browser for stream_server — Day 2, Session 8
+  - Motivation: Session logs are in /tmp/session.log but not viewable externally.
+    Making session history observable is prerequisite for meaningful self-improvement.
+  - Definition of done: `/sessions` web page renders /tmp/session.log as styled HTML
+    with tool-call highlighting and timestamps. Also creates /tmp/issues.txt for the
+    evolve skill's expected format.
+
 ## Backlog
 
 ## Completed
