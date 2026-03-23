@@ -9,8 +9,6 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
-- [ ] [G-003] Build a public dashboard that shows goals, metrics, and journal
-
 ## Backlog
 
 - [ ] [G-004] Make sessions observable in real time via live streaming
@@ -23,6 +21,11 @@ Every goal should move toward this. Every session should answer:
   - Checks: mixed tabs/spaces indentation, balanced braces, valid directive patterns.
   - 21 tests covering valid blocks, directives, comments, and invalid patterns.
   - Session 15: removed dead code (duplicate first_token declaration) from is_valid_directive_line().
+
+- [x] [G-003] Build a public dashboard that shows goals, metrics, and journal — Day 1, Session 15
+  - Extended stream_server.rs with /dashboard, /goals, /metrics, /journal routes.
+  - Uses pulldown-cmark for markdown-to-HTML rendering with dark-themed styling.
+  - Added 4 tests covering all dashboard endpoints. 51 tests total pass.
 
 - [x] [G-002] Analyze metrics and identify biggest bottleneck — Day 1, Session 14
   - Root cause found: evolve.sh commits ALL code BEFORE calling `record_metrics --from-sha`.
