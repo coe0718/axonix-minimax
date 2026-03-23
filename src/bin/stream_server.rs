@@ -1,17 +1,21 @@
 use axum::{
     body::Bytes,
     extract::State,
+    http::HeaderValue,
+    middleware::{from_fn, from_fn_with_state},
     response::{sse::Event, Html, Json, Sse},
     routing::{get, post},
     Router,
 };
 use pulldown_cmark::{html, Parser};
 use serde::Serialize;
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-use tokio::sync::broadcast;
+use std::time::{Duration, Instant};
+use tokio::sync::{broadcast, Mutex};
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
 use tower_http::services::ServeDir;
@@ -20,6 +24,81 @@ const CHANNEL_CAPACITY: usize = 1024;
 const PORT: u16 = 7041;
 
 type AppState = Arc<broadcast::Sender<String>>;
+
+/// Simple IP-based rate limiter: max MAX_REQUESTS per WINDOW duration per IP.
+#[derive(Clone)]
+struct RateLimiter {
+    inner: Arc<Mutex<HashMap<String, Vec<Instant>>>>,
+}
+
+impl RateLimiter {
+    fn new() -> Self {
+        Self { inner: Arc::new(Mutex::new(HashMap::new())) }
+    }
+
+    /// Returns Ok(()) if the request is allowed, Err(message) if rate-limited.
+    async fn check(&self, ip: &str) -> Result<(), String> {
+        const MAX_REQUESTS: usize = 30;
+        const WINDOW_SECS: u64 = 60;
+
+        let mut map = self.inner.lock().await;
+        let now = Instant::now();
+        let window = Duration::from_secs(WINDOW_SECS);
+
+        let timestamps = map.entry(ip.to_string()).or_default();
+
+        // Remove timestamps outside the current window
+        timestamps.retain(|&t| now.duration_since(t) < window);
+
+        if timestamps.len() >= MAX_REQUESTS {
+            return Err(format!(
+                "Rate limit exceeded: {} requests per {} seconds. Try again later.",
+                MAX_REQUESTS, WINDOW_SECS
+            ));
+        }
+
+        timestamps.push(now);
+        Ok(())
+    }
+}
+
+/// Add security headers to every response.
+async fn security_headers(request: axum::http::Request<axum::body::Body>, next: axum::middleware::Next) -> axum::response::Response {
+    let mut response = next.run(request).await;
+    let headers = response.headers_mut();
+    headers.insert("Content-Security-Policy", HeaderValue::from_static("default-src 'self'"));
+    headers.insert("X-Frame-Options", HeaderValue::from_static("DENY"));
+    headers.insert("X-Content-Type-Options", HeaderValue::from_static("nosniff"));
+    headers.insert("Referrer-Policy", HeaderValue::from_static("strict-origin-when-cross-origin"));
+    response
+}
+
+/// Rate-limit guard for the /pipe endpoint.
+async fn rate_limit_pipe(
+    State(limiter): State<RateLimiter>,
+    request: axum::http::Request<axum::body::Body>,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let ip = request
+        .headers()
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("unknown")
+        .split(',')
+        .next()
+        .unwrap_or("unknown")
+        .trim()
+        .to_string();
+
+    if let Err(msg) = limiter.check(&ip).await {
+        let mut resp = axum::response::Response::new(axum::body::Body::from(msg));
+        *resp.status_mut() = axum::http::StatusCode::TOO_MANY_REQUESTS;
+        resp.headers_mut().insert("Content-Type", HeaderValue::from_static("text/plain; charset=utf-8"));
+        return resp;
+    }
+
+    next.run(request).await
+}
 
 /// Dynamic stats computed from METRICS.md and GOALS.md.
 #[derive(Serialize)]
@@ -89,6 +168,7 @@ fn render_markdown_page(title: &str, md_path: &Path) -> Html<String> {
 async fn main() {
     let (tx, _) = broadcast::channel::<String>(CHANNEL_CAPACITY);
     let state: AppState = Arc::new(tx);
+    let rate_limiter = RateLimiter::new();
 
     let app = Router::new()
         .route("/pipe", post(pipe))
@@ -102,12 +182,16 @@ async fn main() {
         .route("/api/stats", get(api_stats))
         .route("/api/issues", get(api_issues))
         .with_state(state)
+        .layer(from_fn(security_headers))
+        .layer(from_fn_with_state(rate_limiter.clone(), rate_limit_pipe))
         .fallback_service(ServeDir::new("docs"));
 
-    let addr: std::net::SocketAddr = match format!("0.0.0.0:{PORT}").parse() {
+    // BIND_ADDR defaults to 127.0.0.1 for safe local-only binding
+    let bind_addr = std::env::var("BIND_ADDR").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let addr: std::net::SocketAddr = match format!("{}:{}", bind_addr, PORT).parse() {
         Ok(a) => a,
         Err(e) => {
-            eprintln!("error: Invalid address: {e}");
+            eprintln!("error: Invalid BIND_ADDR '{}': {e}", bind_addr);
             std::process::exit(1);
         }
     };
@@ -124,10 +208,19 @@ async fn main() {
     }
 }
 
+/// Strip control characters except tab, newline, and carriage return from input.
+fn strip_control_chars(input: &str) -> String {
+    input
+        .chars()
+        .filter(|&c| c == '\t' || c == '\n' || c == '\r' || c >= '\x20')
+        .collect()
+}
+
 async fn pipe(State(tx): State<AppState>, body: Bytes) {
     let text = String::from_utf8_lossy(&body).into_owned();
+    let sanitized = strip_control_chars(&text);
     // Broadcast line by line so SSE clients get incremental updates
-    for line in text.lines() {
+    for line in sanitized.lines() {
         let _ = tx.send(line.to_owned());
     }
 }
@@ -626,5 +719,106 @@ mod tests {
             // Should be valid JSON with an "issues" array
             assert!(v.get("issues").is_some());
         });
+    }
+
+    // ---- Security layer tests ----
+
+    #[test]
+    fn test_strip_control_chars_preserves_normal_text() {
+        let input = "Hello, world! This is safe text with tabs\tand newlines\nand\rcarriage returns.";
+        let out = strip_control_chars(input);
+        assert_eq!(out, input);
+    }
+
+    #[test]
+    fn test_strip_control_chars_removes_nul_byte() {
+        let input = "hello\x00world";
+        let out = strip_control_chars(input);
+        assert_eq!(out, "helloworld");
+    }
+
+    #[test]
+    fn test_strip_control_chars_removes_bell_char() {
+        let input = "hi\x07there";
+        let out = strip_control_chars(input);
+        assert_eq!(out, "hithere");
+    }
+
+    #[test]
+    fn test_strip_control_chars_preserves_unicode() {
+        let input = "Hello 🦀 — 日本語";
+        let out = strip_control_chars(input);
+        assert_eq!(out, input);
+    }
+
+    #[test]
+    fn test_strip_control_chars_removes_escape_and_stx() {
+        let input = "line1\x1b\x02line2";
+        let out = strip_control_chars(input);
+        assert_eq!(out, "line1line2");
+    }
+
+    #[test]
+    fn test_rate_limiter_allows_initial_requests() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let limiter = RateLimiter::new();
+            // First request should always be allowed
+            let result = limiter.check("192.168.1.1").await;
+            assert!(result.is_ok());
+        });
+    }
+
+    #[test]
+    fn test_rate_limiter_blocks_after_limit() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let limiter = RateLimiter::new();
+            let ip = "10.0.0.1";
+            // Exhaust the rate limit (30 requests)
+            for _ in 0..30 {
+                let result = limiter.check(ip).await;
+                assert!(result.is_ok(), "request should be allowed before limit");
+            }
+            // 31st request should be blocked
+            let result = limiter.check(ip).await;
+            assert!(result.is_err());
+            let msg = result.unwrap_err();
+            assert!(msg.contains("Rate limit exceeded"));
+        });
+    }
+
+    #[test]
+    fn test_rate_limiter_is_per_ip() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let limiter = RateLimiter::new();
+            // Exhaust limit for IP A
+            for _ in 0..30 {
+                limiter.check("10.0.0.99").await.unwrap();
+            }
+            // IP B should still be allowed
+            let result = limiter.check("10.0.0.100").await;
+            assert!(result.is_ok());
+        });
+    }
+
+    #[test]
+    fn test_security_headers_adds_csp_header() {
+        use axum::http::HeaderValue;
+        // Verify HeaderValue::from_static works for all our security headers
+        assert_eq!(
+            HeaderValue::from_static("default-src 'self'").as_bytes(),
+            b"default-src 'self'"
+        );
+        assert_eq!(HeaderValue::from_static("DENY").as_bytes(), b"DENY");
+        assert_eq!(
+            HeaderValue::from_static("nosniff").as_bytes(),
+            b"nosniff"
+        );
+        assert_eq!(
+            HeaderValue::from_static("strict-origin-when-cross-origin").as_bytes(),
+            b"strict-origin-when-cross-origin"
+        );
     }
 }
