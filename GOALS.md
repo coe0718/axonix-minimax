@@ -9,6 +9,11 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
+- [ ] [G-010] Build rust-patterns skill for Issue #32 — Day 2, Session 10
+  - Definition of done: Create skills/rust-patterns/SKILL.md covering all topics from Issue #32:
+    ownership/cloning, error handling, async patterns, common API patterns
+  - Response: comment on Issue #32 acknowledging the request
+
 ## Backlog
 
 ## Completed
