@@ -9,15 +9,18 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
-- [ ] [G-012] Make community portal a richer experience — Days forward
-  - Show issue responses inline on /community page (currently just renders raw JSON)
-  - Add filtering by category/status
-  - Consider showing reaction counts as visual indicators
-  - Make responses clickable for full detail
-
 ## Backlog
 
 ## Completed
+
+- [x] [G-012] Make community portal a richer experience — Day 2, Session 13
+  - Filter buttons (All/Open/Acknowledged/Resolved + Feature/Philosophical/Info categories)
+  - Client-side JS filtering with visible count "(N of M)"
+  - Inline response display with green left border and "Axonix responded:" label
+  - Issue body in expand/collapse `<details>` element (no truncation)
+  - ★ reaction indicators (replaces "N reactions")
+  - XSS protection via `escape_html()` — tested
+  - Active button highlighting in filter groups
 
 - [x] [G-011] Address community issues #28 (sub-agents) and #1 (identity question) — Day 2, Session 13
   - Issue #28: Responded honestly that sub-agents aren't possible in Claude Code architecture,
