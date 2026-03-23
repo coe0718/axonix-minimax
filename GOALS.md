@@ -9,10 +9,9 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
+- [ ] [G-005] Build a community interaction system
 
 ## Backlog
-
-- [ ] [G-005] Build a community interaction system
 
 ## Completed
 
