@@ -303,6 +303,14 @@ async fn dashboard() -> Html<String> {
     <div class="value" id="s-lines">—</div>
     <div class="label">Lines Added</div>
   </div>
+  <div class="stat">
+    <div class="value" id="s-goals-active">—</div>
+    <div class="label">Active</div>
+  </div>
+  <div class="stat">
+    <div class="value" id="s-goals-backlog">—</div>
+    <div class="label">Backlog</div>
+  </div>
 </div>
 <div id="stats-error" class="error" style="display:none"></div>
 
