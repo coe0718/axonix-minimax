@@ -139,15 +139,23 @@ Step 4b — Update GOALS.md:
 
 === PHASE 5: Implement ===
 
-- Use edit_file for surgical changes
-- Run: cargo build && cargo test after each change
-- If build fails, revert: git checkout -- src/
-- After each successful change: git add -A && git commit -m "type(scope): description"
-- Keep improving until you run out of good ideas
+You have two sub-agent tools available:
+
+- **implementer**: Executes coding work in a fresh context window. Pass it a detailed plan
+  (which files to read, what to change, what tests to run). It will implement, test, and commit.
+  Use this for ALL coding tasks — do NOT write code yourself. This preserves your context budget.
+
+- **community_responder**: Reads ISSUES_TODAY.md and drafts ISSUE_RESPONSE_<N>.md files.
+  Use this at the start of sessions with community issues to process them in parallel.
+
+Call the implementer tool with a plan like:
+  "Read src/lib.rs and src/main.rs. Add feature X for goal G-NNN. Run cargo test. Commit."
+
+If the implementer fails, call it again with a revised plan. Do not implement in this context.
 
 === PHASE 6: Issue response (if you addressed a community issue) ===
 
-Create ISSUE_RESPONSE.md:
+Use the community_responder sub-agent to draft responses, or create ISSUE_RESPONSE_<N>.md manually:
 issue_number: [N]
 status: fixed|partial|wontfix
 comment: [2-3 sentence response]

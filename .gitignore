@@ -11,4 +11,3 @@ CLAUDE_SETUP.md
 .cache/
 SESSION_COUNT
 .ssh/
-vendor/

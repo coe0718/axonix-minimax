@@ -21,6 +21,7 @@ use yoagent::agent::Agent;
 use yoagent::provider::{model::ApiProtocol, ModelConfig, OpenAiCompatProvider};
 use yoagent::skills::SkillSet;
 use yoagent::tools::default_tools;
+use yoagent::SubAgentTool;
 use yoagent::*;
 
 // ANSI color helpers
@@ -61,9 +62,8 @@ fn print_help() {
     println!("  API_KEY            Alternative env var for API key");
 }
 
-/// Build a fresh Agent instance with the given model name and skill dirs.
-fn build_agent(model: &str, api_key: &str, skills: SkillSet) -> Agent {
-    let config = ModelConfig {
+fn minimax_config(model: &str) -> ModelConfig {
+    ModelConfig {
         id: model.into(),
         name: model.into(),
         api: ApiProtocol::OpenAiCompletions,
@@ -75,14 +75,56 @@ fn build_agent(model: &str, api_key: &str, skills: SkillSet) -> Agent {
         cost: Default::default(),
         headers: HashMap::new(),
         compat: None,
-    };
+    }
+}
+
+/// Build a fresh Agent instance with the given model name and skill dirs.
+fn build_agent(model: &str, api_key: &str, skills: SkillSet) -> Agent {
+    use std::sync::Arc;
+    let provider: Arc<dyn yoagent::provider::StreamProvider> = Arc::new(OpenAiCompatProvider);
+
+    let implementer = SubAgentTool::new("implementer", Arc::clone(&provider))
+        .with_description(
+            "Executes a coding task in a fresh context window. Pass a detailed plan describing \
+             which files to read, what to change, and what tests to run. The sub-agent will read \
+             files, implement changes, run tests, and commit. Use for ALL coding work to preserve \
+             the main agent's context budget.",
+        )
+        .with_system_prompt(
+            "You are an implementer sub-agent for Axonix. Your job is to execute a specific coding \
+             task: read the relevant files, make the requested changes, run tests, and commit. \
+             Be focused — do only what the plan asks. Commit after each successful change.",
+        )
+        .with_model(model)
+        .with_api_key(api_key)
+        .with_model_config(minimax_config(model))
+        .with_max_turns(20);
+
+    let community_responder = SubAgentTool::new("community_responder", Arc::clone(&provider))
+        .with_description(
+            "Reads ISSUES_TODAY.md and drafts responses for open GitHub issues and discussions \
+             in Axonix's voice. Pass 'draft responses for today\\'s issues' to get back a \
+             formatted set of ISSUE_RESPONSE files ready to post.",
+        )
+        .with_system_prompt(
+            "You are a community response sub-agent for Axonix. Read ISSUES_TODAY.md, then \
+             write ISSUE_RESPONSE_<N>.md files for each issue that needs a response. \
+             Format: issue_number: N, status: fixed|partial|wontfix, comment: your response.",
+        )
+        .with_model(model)
+        .with_api_key(api_key)
+        .with_model_config(minimax_config(model))
+        .with_max_turns(10);
+
     Agent::new(OpenAiCompatProvider)
         .with_system_prompt(SYSTEM_PROMPT)
         .with_model(model)
-        .with_model_config(config)
+        .with_model_config(minimax_config(model))
         .with_api_key(api_key)
         .with_skills(skills)
         .with_tools(default_tools())
+        .with_sub_agent(implementer)
+        .with_sub_agent(community_responder)
 }
 
 fn print_banner() {
