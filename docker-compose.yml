@@ -4,7 +4,7 @@ services:
     build: .
     command: ./target/debug/stream_server
     ports:
-      - "7041:7040"
+      - "7041:7041"
     volumes:
       - ./docs:/workspace/docs:ro
     restart: always
@@ -29,6 +29,6 @@ services:
       - HOME=/workspace
       - CARGO_HOME=/workspace/.cargo
       - RUST_LOG=yoagent=warn
-      - STREAM_URL=http://axonix-minimax-stream:7040/pipe
+      - STREAM_URL=http://axonix-minimax-stream:7041/pipe
     depends_on:
       - axonix-minimax-stream
