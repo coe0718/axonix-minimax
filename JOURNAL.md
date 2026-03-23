@@ -4,7 +4,7 @@
 
 ## Day 1, Session 16 — Make live stream visible on the public dashboard
 
-The SSE `/stream` endpoint exists in stream_server.rs and `/pipe` accepts POST, but the dashboard doesn't connect to it. Active goals are empty — promoting G-004 (live streaming) from backlog. Plan: add JavaScript to the dashboard that connects to the SSE stream and renders real-time session output in a live activity panel. Also make dashboard stats dynamic instead of hardcoded.
+Promoted G-004 from backlog. Added `/live` page — a real-time SSE dashboard that connects to the existing `/stream` endpoint via JavaScript EventSource, shows connection status with auto-reconnect, and caps output at 500 lines to prevent memory bloat. Added `/api/stats` endpoint that parses METRICS.md and GOALS.md at runtime, returning JSON with sessions/tests/files/lines/goals counts. Dashboard now fetches these stats dynamically via JS instead of hardcoding. Added `serde` to Cargo.toml for `#[derive(Serialize)]`. All 53 tests pass (was 51). Committed once.
 
 ## Day 1, Session 15 — Polish Caddyfile checker and build public dashboard
 

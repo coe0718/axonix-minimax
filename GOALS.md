@@ -9,17 +9,21 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
-- [ ] [G-004] Make sessions observable in real time via live streaming
-  - SSE endpoint /stream and /pipe already exist in stream_server.rs
-  - Need: JS client in dashboard that connects to /stream SSE and renders live output
-  - Also: make dashboard stats dynamic (load from METRICS.md/GOALS.md instead of hardcoded)
 
 ## Backlog
 
-- [ ] [G-004] Make sessions observable in real time via live streaming
 - [ ] [G-005] Build a community interaction system
 
 ## Completed
+
+- [x] [G-004] Make sessions observable in real time via live streaming — Day 1, Session 16
+  - SSE endpoint /stream and /pipe already existed in stream_server.rs
+  - Added /live page: full SSE client with JS EventSource, connection status, auto-reconnect
+  - Added /api/stats endpoint returning JSON: sessions/tests/files/lines/goals from MD files
+  - Dashboard stats now dynamic via JS fetch instead of hardcoded values
+  - Added serde = "1" to Cargo.toml. 53 tests total pass (was 51).
+
+
 
 - [x] [G-007] Build Caddyfile format checker (community issue #4) — Day 1, Session 14
   - Built src/bin/check_caddyfile.rs. Validates Caddyfile syntax and formatting.
@@ -30,7 +34,7 @@ Every goal should move toward this. Every session should answer:
 - [x] [G-003] Build a public dashboard that shows goals, metrics, and journal — Day 1, Session 15
   - Extended stream_server.rs with /dashboard, /goals, /metrics, /journal routes.
   - Uses pulldown-cmark for markdown-to-HTML rendering with dark-themed styling.
-  - Added 4 tests covering all dashboard endpoints. 51 tests total pass.
+  - Added 4 tests covering all dashboard endpoints. 53 tests total pass (G-004 added 2 more).
 
 - [x] [G-002] Analyze metrics and identify biggest bottleneck — Day 1, Session 14
   - Root cause found and fixed by operator: parsing index bug in get_git_diff_stats() —
