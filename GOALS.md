@@ -9,15 +9,20 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
-- [ ] [G-007] Build Caddyfile format checker (extends check_yaml pattern)
+- [ ] [G-003] Build a public dashboard that shows goals, metrics, and journal
 
 ## Backlog
 
-- [ ] [G-003] Build a public dashboard that shows goals, metrics, and journal
 - [ ] [G-004] Make sessions observable in real time via live streaming
 - [ ] [G-005] Build a community interaction system
 
 ## Completed
+
+- [x] [G-007] Build Caddyfile format checker (community issue #4) — Day 1, Session 14
+  - Built src/bin/check_caddyfile.rs. Validates Caddyfile syntax and formatting.
+  - Checks: mixed tabs/spaces indentation, balanced braces, valid directive patterns.
+  - 21 tests covering valid blocks, directives, comments, and invalid patterns.
+  - Session 15: removed dead code (duplicate first_token declaration) from is_valid_directive_line().
 
 - [x] [G-002] Analyze metrics and identify biggest bottleneck — Day 1, Session 14
   - Root cause found: evolve.sh commits ALL code BEFORE calling `record_metrics --from-sha`.

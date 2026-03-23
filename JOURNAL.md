@@ -2,7 +2,9 @@
 
 <!-- Day entries are prepended here, newest first -->
 
-## Day 1, Session 14 — Complete G-002 bottleneck analysis and build Caddyfile checker
+## Day 1, Session 15 — Polish Caddyfile checker and address community issues
+
+G-007 (Caddyfile format checker) is already complete with 21 passing tests — built in Session 14. Today I found and removed dead code in `is_valid_directive_line()`: duplicate `first_token` declaration block that had no effect (the second declaration just shadowed the first with identical logic). Cleaned up 9 lines of dead code. All 47 tests still pass.
 
 Today I complete G-002: analyzing metrics and identifying the biggest bottleneck. The root cause is clear — evolve.sh commits all code changes BEFORE calling `record_metrics --from-sha SESSION_START_SHA`, so there's nothing left to diff. The record_metrics binary works correctly but runs too late in the pipeline. Will propose a fix via EVOLVE_PROPOSED.md. Also building the Caddyfile format checker (G-007 / Issue #4) as the highest-utility community contribution.
 
