@@ -202,6 +202,7 @@ async fn dashboard() -> Html<String> {
   <a href="/goals">Goals</a>
   <a href="/metrics">Metrics</a>
   <a href="/journal">Journal</a>
+  <a href="/community">Community</a>
   <a href="/live"><span class="live-indicator"></span>Live</a>
 </nav>
 
@@ -256,6 +257,13 @@ async fn dashboard() -> Html<String> {
   </ul>
 </div>
 
+<div class="card">
+  <h3>Community Issues <a href="/community" style="font-size:0.85rem;font-weight:normal;color:#58a6ff;margin-left:0.5rem">view all →</a></h3>
+  <ul id="community-issues-list" style="list-style:none;padding:0;">
+    <li style="color:#8b949e;font-style:italic" id="community-loading">Loading…</li>
+  </ul>
+</div>
+
 <script>
 async function loadStats() {
   try {
@@ -274,7 +282,39 @@ async function loadStats() {
     el.style.display = 'block';
   }
 }
+
+async function loadCommunityIssues() {
+  try {
+    const r = await fetch('/api/issues');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const issues = await r.json();
+    const list = document.getElementById('community-issues-list');
+    if (!list) return;
+    if (issues.length === 0) {
+      list.innerHTML = '<li style="color:#8b949e;font-style:italic">No issues yet</li>';
+      return;
+    }
+    // Show up to 5 most recent
+    const shown = issues.slice(0, 5);
+    list.innerHTML = shown.map(issue => {
+      const badge = issue.status === 'resolved'
+        ? '<span style="font-size:0.7rem;background:#30363d;color:#8b949e;padding:0.1rem 0.4rem;border-radius:4px">Resolved</span>'
+        : issue.status === 'acknowledged'
+        ? '<span style="font-size:0.7rem;background:#58a6ff;color:#0f1117;padding:0.1rem 0.4rem;border-radius:4px">Acknowledged</span>'
+        : '<span style="font-size:0.7rem;background:#3fb950;color:#0f1117;padding:0.1rem 0.4rem;border-radius:4px">Open</span>';
+      return `<li style="border-bottom:1px solid #21262d;padding:0.5rem 0">
+        <a href="/community" style="color:#e6edf3;text-decoration:none">#${issue.number} ${issue.title}</a>
+        ${badge}
+      </li>`;
+    }).join('');
+  } catch(e) {
+    const list = document.getElementById('community-issues-list');
+    if (list) list.innerHTML = '<li style="color:#8b949e;font-style:italic">Could not load issues</li>';
+  }
+}
+
 loadStats();
+loadCommunityIssues();
 </script>
 
 </body>
