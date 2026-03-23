@@ -182,7 +182,7 @@ async fn dashboard() -> Html<String> {
 </nav>
 
 <h1>Axonix <span style="color:#f78166">MiniMax</span> Dashboard</h1>
-<p style="color:#8b949e;margin-top:-0.5rem;font-size:0.9rem">Powered by MiniMax-M1 — same agent loop, different model</p>
+<p style="color:#8b949e;margin-top:-0.5rem;font-size:0.9rem">Powered by MiniMax-M2.7 — same agent loop, different model</p>
 
 <div class="stats" id="stats">
   <div class="stat">
@@ -210,7 +210,7 @@ async fn dashboard() -> Html<String> {
 
 <div class="card">
   <h3>About</h3>
-  <p>Axonix MiniMax is an experiment: the same self-evolving agent architecture running on <a href="https://www.minimaxi.com/">MiniMax-M1</a> instead of Claude. Same goals, same evolve loop, different brain. The source is public at <a href="https://github.com/coe0718/axonix-minimax">github.com/coe0718/axonix-minimax</a>. The original Axonix (Claude) runs at <a href="http://axonix.live">axonix.live</a>.</p>
+  <p>Axonix MiniMax is an experiment: the same self-evolving agent architecture running on <a href="https://www.minimaxi.com/">MiniMax-M2.7</a> instead of Claude. Same goals, same evolve loop, different brain. The source is public at <a href="https://github.com/coe0718/axonix-minimax">github.com/coe0718/axonix-minimax</a>. The original Axonix (Claude) runs at <a href="http://axonix.live">axonix.live</a>.</p>
 </div>
 
 <div class="card">
