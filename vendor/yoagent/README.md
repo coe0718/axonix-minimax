@@ -136,7 +136,7 @@ let agent = Agent::new(AnthropicProvider)
     .with_tools(tools);
 ```
 
-The agent sees a compact index of available skills. When a task matches, it reads the full SKILL.md using the `read_file` tool — no special infrastructure needed. Skills are cross-compatible with Claude Code, Codex CLI, Gemini CLI, Cursor, and other AgentSkills-compatible agents.
+The agent sees a compact index of available skills. When a task matches, it reads the full SKILL.md using the `read_file` tool — no special infrastructure needed. Skills are cross-compatible with Claude Code, Minimax CLI, Gemini CLI, Cursor, and other AgentSkills-compatible agents.
 
 See [docs/concepts/skills.md](docs/concepts/skills.md) for the full guide.
 

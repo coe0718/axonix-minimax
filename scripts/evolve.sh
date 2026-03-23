@@ -1,12 +1,12 @@
 #!/bin/bash
-# scripts/evolve.sh — One evolution cycle powered by GitHub Copilot Codex.
+# scripts/evolve.sh — One evolution cycle powered by Minimax.
 #
 # Usage:
 #   ./scripts/evolve.sh
 #
 # Prerequisites:
-#   npm install -g @openai/codex
-#   codex --provider github-copilot  (first run — completes device login flow)
+#   npm install -g @openai/Minimax
+#   Minimax --provider github-copilot  (first run — completes device login flow)
 #
 # Environment:
 #   MINIMAX_API_KEY — required
@@ -82,7 +82,7 @@ echo ""
 SESSION_START_SHA=$(git rev-parse HEAD 2>/dev/null || echo "")
 
 # ── Step 3: Run evolution session ──
-echo "→ Starting evolution session (Codex)..."
+echo "→ Starting evolution session (Minimax)..."
 echo ""
 
 TIMEOUT_CMD="timeout"

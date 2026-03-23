@@ -97,7 +97,7 @@ base.merge(workspace); // workspace wins on conflict
 
 ## Compatibility
 
-By following the AgentSkills standard, skills written for yoagent work with Claude Code, Codex CLI, Gemini CLI, Cursor, OpenCode, Goose, and any other compatible agent. Write once, use everywhere.
+By following the AgentSkills standard, skills written for yoagent work with Claude Code, Minimax CLI, Gemini CLI, Cursor, OpenCode, Goose, and any other compatible agent. Write once, use everywhere.
 
 ## Design philosophy
 
