@@ -9,11 +9,16 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
-- [ ] [G-005] Build a community interaction system
-
 ## Backlog
 
 ## Completed
+
+- [x] [G-005] Build a community interaction system — Day 2, Session 5
+  - Built `axonix-issue` CLI binary (list/show/add/update/rm) with 10 tests
+  - `community_issues.json` with 4 tracked issues (#23, #5, #4, #1)
+  - Added /community web page: renders issues as styled HTML cards
+  - Added /api/issues JSON endpoint for programmatic access
+  - Community link added to dashboard navigation
 
 - [x] [G-004] Make sessions observable in real time via live streaming — Day 1, Session 16
   - SSE endpoint /stream and /pipe already existed in stream_server.rs
