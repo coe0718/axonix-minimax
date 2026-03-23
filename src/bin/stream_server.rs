@@ -1,11 +1,12 @@
 use axum::{
     body::Bytes,
     extract::State,
-    response::{sse::Event, Html, Sse},
+    response::{sse::Event, Html, Json, Sse},
     routing::{get, post},
     Router,
 };
 use pulldown_cmark::{html, Parser};
+use serde::Serialize;
 use std::convert::Infallible;
 use std::fs;
 use std::path::Path;
@@ -19,6 +20,19 @@ const CHANNEL_CAPACITY: usize = 1024;
 const PORT: u16 = 7041;
 
 type AppState = Arc<broadcast::Sender<String>>;
+
+/// Dynamic stats computed from METRICS.md and GOALS.md.
+#[derive(Serialize)]
+struct Stats {
+    total_sessions: usize,
+    latest_tests_passed: usize,
+    total_files_changed: usize,
+    total_lines_added: usize,
+    total_lines_removed: usize,
+    goals_completed: usize,
+    goals_active: usize,
+    goals_backlog: usize,
+}
 
 /// Render a markdown file as a styled HTML page.
 fn render_markdown_page(title: &str, md_path: &Path) -> Html<String> {
@@ -83,6 +97,8 @@ async fn main() {
         .route("/goals", get(goals))
         .route("/metrics", get(metrics))
         .route("/journal", get(journal))
+        .route("/live", get(live))
+        .route("/api/stats", get(api_stats))
         .with_state(state)
         .fallback_service(ServeDir::new("docs"));
 
@@ -151,6 +167,9 @@ async fn dashboard() -> Html<String> {
   .unchecked { color: #f85149; }
   a { color: #58a6ff; }
   code { background: #161b22; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+  .live-indicator { display: inline-block; width: 8px; height: 8px; background: #3fb950; border-radius: 50%; margin-right: 0.4rem; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .error { color: #f85149; font-size: 0.85rem; }
 </style>
 </head>
 <body>
@@ -159,29 +178,34 @@ async fn dashboard() -> Html<String> {
   <a href="/goals">Goals</a>
   <a href="/metrics">Metrics</a>
   <a href="/journal">Journal</a>
-  <a href="/stream">Live Stream</a>
+  <a href="/live"><span class="live-indicator"></span>Live</a>
 </nav>
 
 <h1>Axonix Dashboard</h1>
 
-<div class="stats">
+<div class="stats" id="stats">
   <div class="stat">
-    <div class="value">15</div>
+    <div class="value" id="s-sessions">—</div>
     <div class="label">Sessions</div>
   </div>
   <div class="stat">
-    <div class="value">47</div>
-    <div class="label">Tests Passing</div>
+    <div class="value" id="s-tests">—</div>
+    <div class="label">Latest Tests</div>
   </div>
   <div class="stat">
-    <div class="value">4</div>
+    <div class="value" id="s-files">—</div>
+    <div class="label">Files Changed</div>
+  </div>
+  <div class="stat">
+    <div class="value" id="s-goals">—</div>
     <div class="label">Goals Done</div>
   </div>
   <div class="stat">
-    <div class="value">2</div>
-    <div class="label">Checkers Built</div>
+    <div class="value" id="s-lines">—</div>
+    <div class="label">Lines Added</div>
   </div>
 </div>
+<div id="stats-error" class="error" style="display:none"></div>
 
 <div class="card">
   <h3>About</h3>
@@ -207,6 +231,27 @@ async fn dashboard() -> Html<String> {
   </ul>
 </div>
 
+<script>
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    document.getElementById('s-sessions').textContent = d.total_sessions;
+    document.getElementById('s-tests').textContent = d.latest_tests_passed;
+    document.getElementById('s-files').textContent = d.total_files_changed;
+    document.getElementById('s-goals').textContent = d.goals_completed;
+    document.getElementById('s-lines').textContent = d.total_lines_added;
+    document.getElementById('stats-error').style.display = 'none';
+  } catch(e) {
+    const el = document.getElementById('stats-error');
+    el.textContent = 'Stats unavailable (server may not be running from project root)';
+    el.style.display = 'block';
+  }
+}
+loadStats();
+</script>
+
 </body>
 </html>"#;
     Html(home.to_string())
@@ -222,6 +267,147 @@ async fn metrics() -> Html<String> {
 
 async fn journal() -> Html<String> {
     render_markdown_page("Journal", Path::new("JOURNAL.md"))
+}
+
+/// Dynamically compute stats from METRICS.md and GOALS.md.
+async fn api_stats() -> Json<Stats> {
+    let metrics = fs::read_to_string("METRICS.md").unwrap_or_default();
+    let goals_md = fs::read_to_string("GOALS.md").unwrap_or_default();
+
+    let mut sessions = 0;
+    let mut latest_tests_passed = 0;
+    let mut total_files = 0;
+    let mut total_added = 0;
+    let mut total_removed = 0;
+
+    for line in metrics.lines() {
+        if line.starts_with("| 1 ") || line.starts_with("| 2 ") || line.starts_with("| 3 ") {
+            sessions += 1;
+            let parts: Vec<&str> = line.split('|').collect();
+            if parts.len() >= 9 {
+                if let Ok(tp) = parts[4].trim().parse::<usize>() {
+                    latest_tests_passed = tp;
+                }
+                if let Ok(fc) = parts[6].trim().parse::<usize>() {
+                    total_files += fc;
+                }
+                if let Ok(la) = parts[7].trim().parse::<usize>() {
+                    total_added += la;
+                }
+                if let Ok(lr) = parts[8].trim().parse::<usize>() {
+                    total_removed += lr;
+                }
+            }
+        }
+    }
+
+    let goals_completed = goals_md.matches("- [x]").count();
+    let goals_active = goals_md.matches("- [ ] [G-").count();
+    let goals_backlog = goals_md.matches("## Backlog").next().map_or(0, |_| {
+        goals_md.matches("- [ ]").count()
+    });
+
+    Json(Stats {
+        total_sessions: sessions,
+        latest_tests_passed,
+        total_files_changed: total_files,
+        total_lines_added: total_added,
+        total_lines_removed: total_removed,
+        goals_completed,
+        goals_active,
+        goals_backlog,
+    })
+}
+
+/// Dedicated live stream page with an SSE client that renders real-time output.
+async fn live() -> Html<String> {
+    let html = r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Stream — Axonix</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; background: #0d1117; color: #c9d1d9; margin: 0; padding: 1rem; height: 100vh; display: flex; flex-direction: column; }
+  nav { display: flex; gap: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #30363d; margin-bottom: 1rem; }
+  nav a { color: #58a6ff; text-decoration: none; font-weight: 600; font-family: system-ui, sans-serif; font-size: 1rem; }
+  nav a:hover { color: #79c0ff; }
+  #status { font-family: system-ui, sans-serif; font-size: 0.85rem; color: #8b949e; margin-bottom: 0.5rem; }
+  #status.connected { color: #3fb950; }
+  #status.disconnected { color: #f85149; }
+  #output { flex: 1; overflow-y: auto; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; word-break: break-all; min-height: 300px; }
+  .line { border-bottom: 1px solid #21262d; padding: 0.1rem 0; }
+  .line:last-child { border-bottom: none; }
+  .empty { color: #484f58; font-style: italic; }
+  #clear { margin-top: 0.5rem; padding: 0.4rem 1rem; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-family: system-ui, sans-serif; }
+  #clear:hover { background: #30363d; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/goals">Goals</a>
+  <a href="/metrics">Metrics</a>
+  <a href="/journal">Journal</a>
+  <a href="/stream">Raw SSE</a>
+</nav>
+<div id="status">Connecting…</div>
+<div id="output"><span class="empty">Waiting for session output…</span></div>
+<button id="clear">Clear output</button>
+<script>
+const status = document.getElementById('status');
+const output = document.getElementById('output');
+const clearBtn = document.getElementById('clear');
+
+let es;
+let lineCount = 0;
+
+function connect() {
+  es = new EventSource('/stream');
+  status.textContent = 'Connecting…';
+  status.className = '';
+
+  es.onopen = () => {
+    status.textContent = '● Connected — receiving live session output';
+    status.className = 'connected';
+  };
+
+  es.onmessage = (e) => {
+    if (lineCount === 1 && output.querySelector('.empty')) {
+      output.innerHTML = '';
+    }
+    const div = document.createElement('div');
+    div.className = 'line';
+    div.textContent = e.data;
+    output.appendChild(div);
+    lineCount++;
+    output.scrollTop = output.scrollHeight;
+    // Keep last 500 lines to prevent memory bloat
+    while (output.children.length > 500) {
+      output.removeChild(output.firstChild);
+    }
+  };
+
+  es.onerror = () => {
+    status.textContent = '✗ Disconnected — stream closed';
+    status.className = 'disconnected';
+    es.close();
+    // Reconnect after 3 seconds
+    setTimeout(connect, 3000);
+  };
+}
+
+clearBtn.addEventListener('click', () => {
+  output.innerHTML = '<span class="empty">Output cleared. Waiting for new messages…</span>';
+  lineCount = 0;
+});
+
+connect();
+</script>
+</body>
+</html>"#;
+    Html(html.to_string())
 }
 
 #[cfg(test)]
@@ -262,7 +448,34 @@ mod tests {
             assert!(s.contains("/goals"));
             assert!(s.contains("/metrics"));
             assert!(s.contains("/journal"));
+            assert!(s.contains("/api/stats"));
+        });
+    }
+
+    #[test]
+    fn test_api_stats_returns_valid_json() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let json = api_stats().await;
+            // Should deserialize cleanly
+            let s = &json.0;
+            assert!(s.total_sessions >= 0);
+            assert!(s.goals_completed >= 0);
+            assert!(s.goals_active >= 0);
+        });
+    }
+
+    #[test]
+    fn test_live_page_has_sse_client() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let html = live().await;
+            let s = html.0.as_str();
+            assert!(s.contains("<!DOCTYPE html>"));
+            assert!(s.contains("EventSource"));
             assert!(s.contains("/stream"));
+            assert!(s.contains("Connecting…"));
+            assert!(s.contains("Clear output"));
         });
     }
 }
