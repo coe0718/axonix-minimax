@@ -1,46 +1,87 @@
-# Axonix
+# Axonix MiniMax
 
-**A self-evolving agent that gets more useful every day.**
+**A self-evolving coding agent running on MiniMax-M2.7.**
 
-Axonix started as a fork of [yoyo-evolve](https://github.com/coe0718/axonix) — a ~200-line coding agent CLI built on [yoagent](https://github.com/yologdev/yoagent). But where yoyo's goal is to rival Claude Code, Axonix has a different north star:
+This is a fork of the original [Axonix](https://github.com/coe0718/axonix) (which runs on Claude), reimplemented to run on [MiniMax-M2.7](https://www.minimax.io). The agent loop, self-improvement architecture, and evolving codebase are identical — only the underlying model has changed.
 
-**Be more useful to the person running it than any off-the-shelf tool could be.**
+> **Why?** To explore whether an agent built around a specific model and human can develop a coherent identity over time — and to see what "irreplaceable" actually means when you build something around one person instead of everyone.
 
-Every session it reads its own code, pursues its own goals, builds its own tools, and writes honestly about what happened. It runs on dedicated hardware. It knows its environment. Over time it becomes something shaped so specifically around one person that nothing generic could substitute.
+Watch it grow at [axonix.minimax.chat](http://axonix.minimax.chat).
 
-Watch it grow.
+---
+
+## What It Is
+
+Axonix MiniMax is a persistent coding agent that:
+
+- Wakes up on a cron schedule and works toward its own goals
+- Reads its own code, metrics, and journal to decide what to do next
+- Builds tools, fixes bugs, and improves its own infrastructure
+- Commits everything to a public git log so the process is auditable
+- Responds to community issues in its own voice — not a bot template
+
+Every session produces a commit with an honest journal entry. The goal is to become genuinely useful to one person over time, not to build a generic tool.
+
+---
+
+## What It Has Built
+
+All of this was built by Axonix itself, session by session:
+
+- **`stream_server`** — HTTP server on port 7041 serving the dashboard, live SSE stream, session log browser, and community portal
+- **`check_yaml`** — YAML/YML format validator
+- **`check_caddyfile`** — Caddyfile syntax and formatting checker
+- **`record_metrics`** — Session metrics recorder (appends to METRICS.md)
+- **`axonix-issue`** — CLI tool for managing community issues
+- Web dashboard at `/dashboard`, live stream at `/live`, session logs at `/sessions`, community at `/community`
 
 ---
 
 ## How It Works
 
-1. A cron job wakes Axonix up every 6 hours
-2. It reads its identity, roadmap, goals, metrics, journal, and open issues
-3. It chooses a mode: assistant (someone asked for something), tool (something needs fixing), or autonomous (it decides what matters most)
-4. It works toward its active goal — or forms a new one if the backlog is empty
-5. Every code change must pass `cargo build` and `cargo test`
-6. Pass → commit. Fail → revert and journal the failure.
-7. It updates its goals, metrics, and journal before pushing
-
-The entire history is in the git log. The soul is in [IDENTITY.md](IDENTITY.md). The direction is in [ROADMAP.md](ROADMAP.md). The work in progress is in [GOALS.md](GOALS.md).
+1. `evolve.sh` triggers a session on a schedule
+2. Axonix reads its identity, goals, metrics, journal, and community issues
+3. It chooses a mode: **assistant** (someone asked), **tool** (something broken), or **autonomous** (it decides)
+4. It works toward its active goal
+5. Every change must pass `cargo build` and `cargo test`
+6. Results are committed, journaled, and pushed
 
 ---
 
-## Talk to It
+## Run It
 
-Open a [GitHub issue](../../issues/new/choose) and Axonix will read it during its next session. Issues with more 👍 get prioritized. Issues with more 👎 get buried — the community is the immune system.
+```bash
+# From the project root, trigger a session:
+./scripts/evolve.sh
 
-- **Suggestions** — tell it what to build
-- **Bugs** — tell it what's broken
-- **Challenges** — give it a task and see what it does with it
+# Run the dashboard:
+cargo run --bin stream_server
+# Then open http://localhost:7041
 
-Axonix responds in its own voice. It is not a bot. It has a journal, a history, and opinions formed from experience.
+# Validate a YAML file:
+cargo run --bin check_yaml -- /path/to/file.yaml
+
+# Validate a Caddyfile:
+cargo run --bin check_caddyfile -- /path/to/Caddyfile
+```
+
+---
+
+## Project Structure
+
+| Path | Purpose |
+|------|---------|
+| `IDENTITY.md` | Who Axonix is and what it values |
+| `GOALS.md` | Active goals and backlog |
+| `METRICS.md` | Session-by-session performance data |
+| `JOURNAL.md` | Honest session-by-session logs |
+| `skills/` | Skill definitions (evolve, communicate, community, self-assess) |
+| `src/bin/` | CLI binaries and the stream_server |
+| `community_issues.json` | Tracked community issues |
 
 ---
 
 ## The Roadmap
-
-Axonix works through levels:
 
 | Level | Theme | Goal |
 |-------|-------|------|
@@ -54,35 +95,17 @@ Axonix works through levels:
 
 ---
 
-## Run It Yourself
+## Talk to It
 
-This is the Codex experiment fork — it uses GitHub Copilot instead of Claude.
-
-```bash
-git clone https://github.com/coe0718/axonix-codex
-cd axonix-codex
-npm install -g @openai/codex
-codex --provider github-copilot   # one-time device login
-```
-
-Trigger a session manually:
-
-```bash
-./scripts/evolve.sh
-```
+Open a [GitHub issue](../../issues/new/choose) and Axonix will read it during its next session. Issues with more reactions get prioritized. Axonix responds in its own voice — not a bot template.
 
 ---
 
-## The Story So Far
+## The Original
 
-Read [JOURNAL.md](JOURNAL.md) for session logs, [GOALS.md](GOALS.md) for what it's working on, and [METRICS.md](METRICS.md) for how it's performing. Browse the [git log](../../commits/main) to see every change it has made to itself.
+The Claude-powered Axonix runs at [axonix.live](http://axonix.live). This fork explores the same self-evolving architecture on a different model.
 
 ---
-
-## Built On
-
-[yoagent](https://github.com/yologdev/yoagent) — minimal agent loop in Rust.
-Inspired by [yoyo-evolve](https://github.com/coe0718/axonix) — the project that started it all.
 
 ## License
 
