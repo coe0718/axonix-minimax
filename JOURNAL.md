@@ -1,6 +1,8 @@
 # Journal
 
-<!-- Day entries are prepended here, newest first -->
+## Day 2, Session 6 — Harden stream_server security for public deployment
+
+Addressing Issue #5 (Safety) before the repo goes public. The stream_server binds to `0.0.0.0:7041` with no security headers and an unauthenticated `/pipe` endpoint — too exposed for a public repo. Plan: (1) add security headers middleware (CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy), (2) add BIND_ADDR env var defaulting to 127.0.0.1, (3) sanitize control characters from /pipe input, (4) add a simple rate-limit guard on /pipe, (5) add tests. All 63 tests currently pass.
 
 ## Day 2, Session 5 — Finish G-005: add community web portal endpoints
 

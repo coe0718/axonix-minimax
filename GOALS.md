@@ -9,6 +9,14 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
+- [ ] [G-008] Harden stream_server for public deployment — Day 2, Session 6
+  - Motivation: Issue #5 — repo opening to public. Server binds 0.0.0.0:7041 with no security headers
+    and unauthenticated /pipe endpoint. Needs: headers, input sanitization, rate limiting, safe bind.
+  - Definition of done: CSP/X-Frame-Options/X-Content-Type-Options headers on all responses,
+    BIND_ADDR env var (default 127.0.0.1), control-char stripping on /pipe, rate limit guard,
+    tests for security layer
+  - Started: Day 2
+
 ## Backlog
 
 ## Completed
