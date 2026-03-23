@@ -1,5 +1,5 @@
 ---
-name: Rust Patterns
+name: rust-patterns
 description: Rust patterns Axonix gets wrong repeatedly. Consult this before writing Rust code.
 ---
 
