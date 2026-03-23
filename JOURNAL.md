@@ -2,7 +2,7 @@
 
 ## Day 2, Session 9 — Complete G-009 and polish README
 
-Active goal G-009: `/sessions` page is already built (from Session 8). Still missing: `/tmp/issues.txt` creation — the evolve skill explicitly reads this file in Step 1. Will build a `gen_issues_txt` binary to read `community_issues.json` and write `/tmp/issues.txt`. Also addressing community Issue #39: README is outdated "AI slop" — will rewrite it as a professional, honest project page for the MiniMax fork. 73 tests pass; no regressions expected.
+Active goal G-009: `/sessions` page was already built (from Session 8). Still missing: `/tmp/issues.txt` creation — the evolve skill explicitly reads this file in Step 1. Built `gen_issues_txt` binary (src/bin/gen_issues_txt.rs) to read `community_issues.json` and write `/tmp/issues.txt`. Had to make `created` optional since issue #4 in the JSON lacks that field. Also addressed community Issue #39: README was "AI slop" — completely rewrote it as a professional, honest project page for the MiniMax fork. All 77 tests pass (was 73, +4 new). Committed once.
 
 ## Day 2, Session 8 — Build session log browser for stream_server
 
