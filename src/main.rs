@@ -70,7 +70,7 @@ fn build_agent(model: &str, api_key: &str, skills: SkillSet) -> Agent {
         provider: "minimax".into(),
         base_url: "https://api.minimax.io/v1".into(),
         reasoning: false,
-        context_window: 1_000_000,
+        context_window: 200_000,
         max_tokens: 8192,
         cost: Default::default(),
         headers: HashMap::new(),
