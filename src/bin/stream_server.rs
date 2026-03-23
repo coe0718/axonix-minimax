@@ -592,7 +592,8 @@ connect();
     Html(html.to_string())
 }
 
-/// Render the community issues page.
+/// Render the community issues page with optional status/category filtering.
+/// Query params: ?status=open,resolved,acknowledged&category=feature,philosophical
 async fn community() -> Html<String> {
     let data = fs::read_to_string("community_issues.json")
         .unwrap_or_else(|_| r#"{"issues":[]}"#.to_string());
@@ -613,6 +614,7 @@ async fn community() -> Html<String> {
                     let status = issue["status"].as_str().unwrap_or("open");
                     let reactions = issue["reactions"].as_u64().unwrap_or(0);
                     let created = issue["created"].as_str().unwrap_or("");
+                    let response = issue["response"].as_str().unwrap_or("");
 
                     let (status_icon, status_class) = match status {
                         "resolved" => ("✓", "resolved"),
@@ -622,26 +624,49 @@ async fn community() -> Html<String> {
                         _ => ("○", "open"),
                     };
 
-                    let body_short: String = body.chars().take(160).collect();
-                    let body_short = if body.len() > 160 {
-                        format!("{}…", body_short)
+                    let body_escaped = escape_html(body);
+                    let response_escaped = escape_html(response);
+
+                    let response_html = if !response.is_empty() {
+                        format!(
+                            r#"<div class="issue-response">
+                               <div class="response-label">Axonix responded:</div>
+                               <p class="response-text">{}</p>
+                             </div>"#,
+                            response_escaped.replace('\n', "<br>")
+                        )
                     } else {
-                        body_short.to_string()
+                        String::new()
                     };
 
                     format!(
-                        r#"<div class="issue">
-            <div class="issue-header">
-              <span class="issue-num">#{num}</span>
-              <span class="issue-category">{category}</span>
-              <span class="issue-status {status_class}">{status_icon} {status}</span>
-              <span class="issue-reactions" title="reactions">{reactions} reaction{reaction_plural}</span>
-            </div>
-            <h3>{title}</h3>
-            <p class="issue-body">{body_short}</p>
-            <div class="issue-meta">Opened {created}</div>
-          </div>"#,
-                        reaction_plural = if reactions == 1 { "" } else { "s" }
+                        r#"<div class="issue" data-status="{}" data-category="{}">
+             <div class="issue-header">
+               <span class="issue-num">#{}</span>
+               <span class="issue-category">{}</span>
+               <span class="issue-status {}">{} {}</span>
+               <span class="issue-reactions" title="reactions">★ {}</span>
+             </div>
+             <h3>{}</h3>
+             <details class="issue-details">
+               <summary class="issue-summary">View issue</summary>
+               <p class="issue-body">{}</p>
+             </details>
+             {}
+             <div class="issue-meta">Opened {}</div>
+           </div>"#,
+                        status,
+                        category,
+                        num,
+                        category,
+                        status_class,
+                        status_icon,
+                        status,
+                        reactions,
+                        title,
+                        body_escaped,
+                        response_html,
+                        created
                     )
                 })
                 .collect::<Vec<_>>()
@@ -664,7 +689,22 @@ async fn community() -> Html<String> {
   nav a:hover {{ color: #79c0ff; }}
   h1 {{ color: #58a6ff; border-bottom: 2px solid #30363d; padding-bottom: 0.5rem; }}
   h3 {{ color: #e6edf3; margin: 0 0 0.5rem; }}
-  .issue {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }}
+  .filters {{ display: flex; gap: 0.5rem; margin: 1rem 0; flex-wrap: wrap; align-items: center; }}
+  .filter-label {{ color: #8b949e; font-size: 0.85rem; }}
+  .filter-btn {{
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 16px;
+    padding: 0.2rem 0.75rem;
+    font-size: 0.8rem;
+    color: #8b949e;
+    cursor: pointer;
+    transition: all 0.15s;
+  }}
+  .filter-btn:hover {{ border-color: #58a6ff; color: #58a6ff; }}
+  .filter-btn.active {{ background: #1f6feb; border-color: #1f6feb; color: #fff; }}
+  .issue {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; transition: opacity 0.2s; }}
+  .issue.hidden {{ display: none; }}
   .issue-header {{ display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; }}
   .issue-num {{ color: #8b949e; font-weight: 600; }}
   .issue-category {{ background: #1c2128; border: 1px solid #30363d; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.8rem; color: #8b949e; }}
@@ -675,7 +715,12 @@ async fn community() -> Html<String> {
   .issue-status.wontfix {{ color: #f85149; }}
   .issue-status.open {{ color: #8b949e; }}
   .issue-reactions {{ margin-left: auto; font-size: 0.8rem; color: #8b949e; }}
-  .issue-body {{ color: #8b949e; margin: 0.25rem 0; font-size: 0.9rem; }}
+  .issue-details {{ margin: 0.25rem 0; }}
+  .issue-summary {{ color: #58a6ff; cursor: pointer; font-size: 0.85rem; }}
+  .issue-body {{ color: #8b949e; margin: 0.25rem 0; font-size: 0.9rem; white-space: pre-wrap; }}
+  .issue-response {{ margin-top: 0.75rem; padding: 0.75rem; background: #1c2128; border-left: 3px solid #3fb950; border-radius: 0 4px 4px 0; }}
+  .response-label {{ font-size: 0.75rem; color: #3fb950; font-weight: 600; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em; }}
+  .response-text {{ color: #c9d1d9; font-size: 0.88rem; margin: 0; line-height: 1.5; }}
   .issue-meta {{ font-size: 0.8rem; color: #484f58; margin-top: 0.5rem; }}
   .empty {{ color: #484f58; text-align: center; padding: 2rem; }}
 </style>
@@ -695,12 +740,60 @@ async fn community() -> Html<String> {
   Use <code>axonix-issue list</code> to manage them from the CLI.
 </p>
 
+<div class="filters">
+  <span class="filter-label">Status:</span>
+  <button class="filter-btn active" onclick="filterIssues('all', this)">All</button>
+  <button class="filter-btn" onclick="filterIssues('open', this)">Open</button>
+  <button class="filter-btn" onclick="filterIssues('acknowledged', this)">Acknowledged</button>
+  <button class="filter-btn" onclick="filterIssues('resolved', this)">Resolved</button>
+  <span class="filter-label" style="margin-left:0.5rem">Category:</span>
+  <button class="filter-btn" onclick="filterIssues('feature', this)">Feature</button>
+  <button class="filter-btn" onclick="filterIssues('philosophical', this)">Philosophical</button>
+  <button class="filter-btn" onclick="filterIssues('info', this)">Info</button>
+</div>
+
 {issues_html}
+
+<script>
+function filterIssues(type, btn) {{
+  // Toggle active button in the same group
+  btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const issues = document.querySelectorAll('.issue');
+  let visible = 0;
+  issues.forEach(issue => {{
+    const status = issue.getAttribute('data-status');
+    const category = issue.getAttribute('data-category');
+    const show = type === 'all' || status === type || category === type;
+    issue.classList.toggle('hidden', !show);
+    if (show) visible++;
+  }});
+
+  // Show count in header
+  let countEl = document.getElementById('issue-count');
+  if (!countEl) {{
+    countEl = document.createElement('span');
+    countEl.id = 'issue-count';
+    countEl.style.cssText = 'color:#8b949e;font-size:0.9rem;margin-left:0.5rem';
+    document.querySelector('h1').appendChild(countEl);
+  }}
+  countEl.textContent = `(${{visible}} of ${{issues.length}})`;
+}}
+</script>
 
 </body>
 </html>"#
     );
     Html(html)
+}
+
+/// Escape HTML special characters to prevent XSS in user-provided content.
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 /// Serve community issues as JSON for programmatic access.
