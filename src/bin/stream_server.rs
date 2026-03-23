@@ -98,7 +98,9 @@ async fn main() {
         .route("/metrics", get(metrics))
         .route("/journal", get(journal))
         .route("/live", get(live))
+        .route("/community", get(community))
         .route("/api/stats", get(api_stats))
+        .route("/api/issues", get(api_issues))
         .with_state(state)
         .fallback_service(ServeDir::new("docs"));
 
@@ -179,6 +181,7 @@ async fn dashboard() -> Html<String> {
   <a href="/metrics">Metrics</a>
   <a href="/journal">Journal</a>
   <a href="/live"><span class="live-indicator"></span>Live</a>
+  <a href="/community">Community</a>
 </nav>
 
 <h1>Axonix <span style="color:#f78166">MiniMax</span> Dashboard</h1>
@@ -411,6 +414,126 @@ connect();
     Html(html.to_string())
 }
 
+/// Render the community issues page.
+async fn community() -> Html<String> {
+    let data = fs::read_to_string("community_issues.json")
+        .unwrap_or_else(|_| r#"{"issues":[]}"#.to_string());
+
+    let issues: serde_json::Value = serde_json::from_str(&data).unwrap_or(
+        serde_json::json!({ "issues": [] })
+    );
+
+    let issues_html = issues["issues"]
+        .as_array()
+        .map(|arr| {
+            arr.iter()
+                .map(|issue| {
+                    let num = issue["number"].as_u64().unwrap_or(0);
+                    let title = issue["title"].as_str().unwrap_or("");
+                    let body = issue["body"].as_str().unwrap_or("");
+                    let category = issue["category"].as_str().unwrap_or("general");
+                    let status = issue["status"].as_str().unwrap_or("open");
+                    let reactions = issue["reactions"].as_u64().unwrap_or(0);
+                    let created = issue["created"].as_str().unwrap_or("");
+
+                    let (status_icon, status_class) = match status {
+                        "resolved" => ("✓", "resolved"),
+                        "in-progress" | "in_progress" => ("●", "in-progress"),
+                        "acknowledged" => ("○", "acknowledged"),
+                        "wontfix" => ("✗", "wontfix"),
+                        _ => ("○", "open"),
+                    };
+
+                    let body_short: String = body.chars().take(160).collect();
+                    let body_short = if body.len() > 160 {
+                        format!("{}…", body_short)
+                    } else {
+                        body_short.to_string()
+                    };
+
+                    format!(
+                        r#"<div class="issue">
+            <div class="issue-header">
+              <span class="issue-num">#{num}</span>
+              <span class="issue-category">{category}</span>
+              <span class="issue-status {status_class}">{status_icon} {status}</span>
+              <span class="issue-reactions" title="reactions">{reactions} reaction{reaction_plural}</span>
+            </div>
+            <h3>{title}</h3>
+            <p class="issue-body">{body_short}</p>
+            <div class="issue-meta">Opened {created}</div>
+          </div>"#,
+                        reaction_plural = if reactions == 1 { "" } else { "s" }
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .unwrap_or_default();
+
+    let html = format!(
+        r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community — Axonix</title>
+<style>
+  * {{ box-sizing: border-box; }}
+  body {{ font-family: system-ui, sans-serif; max-width: 860px; margin: 0 auto; padding: 2rem; background: #0f1117; color: #e6edf3; line-height: 1.6; }}
+  nav {{ display: flex; gap: 1.5rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #30363d; }}
+  nav a {{ color: #58a6ff; text-decoration: none; font-weight: 600; font-size: 1rem; }}
+  nav a:hover {{ color: #79c0ff; }}
+  h1 {{ color: #58a6ff; border-bottom: 2px solid #30363d; padding-bottom: 0.5rem; }}
+  h3 {{ color: #e6edf3; margin: 0 0 0.5rem; }}
+  .issue {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }}
+  .issue-header {{ display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; }}
+  .issue-num {{ color: #8b949e; font-weight: 600; }}
+  .issue-category {{ background: #1c2128; border: 1px solid #30363d; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.8rem; color: #8b949e; }}
+  .issue-status {{ font-size: 0.85rem; font-weight: 600; }}
+  .issue-status.resolved {{ color: #3fb950; }}
+  .issue-status.in-progress {{ color: #d29922; }}
+  .issue-status.acknowledged {{ color: #58a6ff; }}
+  .issue-status.wontfix {{ color: #f85149; }}
+  .issue-status.open {{ color: #8b949e; }}
+  .issue-reactions {{ margin-left: auto; font-size: 0.8rem; color: #8b949e; }}
+  .issue-body {{ color: #8b949e; margin: 0.25rem 0; font-size: 0.9rem; }}
+  .issue-meta {{ font-size: 0.8rem; color: #484f58; margin-top: 0.5rem; }}
+  .empty {{ color: #484f58; text-align: center; padding: 2rem; }}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/goals">Goals</a>
+  <a href="/metrics">Metrics</a>
+  <a href="/journal">Journal</a>
+  <a href="/community">Community</a>
+</nav>
+
+<h1>Community Issues</h1>
+<p style="color:#8b949e;margin-top:-0.5rem">
+  Open issues and feature requests from the community.
+  Use <code>axonix-issue list</code> to manage them from the CLI.
+</p>
+
+{issues_html}
+
+</body>
+</html>"#
+    );
+    Html(html)
+}
+
+/// Serve community issues as JSON for programmatic access.
+async fn api_issues() -> Json<serde_json::Value> {
+    let data = fs::read_to_string("community_issues.json")
+        .unwrap_or_else(|_| r#"{"issues":[]}"#.to_string());
+    let parsed: serde_json::Value = serde_json::from_str(&data)
+        .unwrap_or(serde_json::json!({ "issues": [] }));
+    Json(parsed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -478,6 +601,30 @@ mod tests {
             assert!(s.contains("/stream"));
             assert!(s.contains("Connecting…"));
             assert!(s.contains("Clear output"));
+        });
+    }
+
+    #[test]
+    fn test_community_page_renders() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let html = community().await;
+            let s = html.0.as_str();
+            assert!(s.contains("<!DOCTYPE html>"));
+            assert!(s.contains("Community Issues"));
+            assert!(s.contains("/community"));
+            assert!(s.contains("<nav>"));
+        });
+    }
+
+    #[test]
+    fn test_api_issues_returns_json() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let json = api_issues().await;
+            let v = &json.0;
+            // Should be valid JSON with an "issues" array
+            assert!(v.get("issues").is_some());
         });
     }
 }
