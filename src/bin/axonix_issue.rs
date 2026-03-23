@@ -268,6 +268,20 @@ Run: axonix-issue help");
         parsed
     }
 
+    #[cfg(test)]
+    fn parse_from<I, S>(input: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        let mut iter = input.into_iter().map(|s| s.into());
+        let _prog = iter.next(); // skip program name
+        let cmd = iter.next().unwrap_or_default();
+        let mut parsed = Args { cmd, args: HashMap::new(), flags: Vec::new() };
+        parsed.parse_rest(iter);
+        parsed
+    }
+
     fn parse_rest<I: Iterator<Item = String>>(&mut self, mut iter: I) {
         while let Some(key) = iter.next() {
             if key == "--help" || key == "-h" {
@@ -446,8 +460,14 @@ mod tests {
 
     #[test]
     fn test_load_data_missing_file() {
-        // When file doesn't exist, should return empty
+        // Run in a temp dir that has no community_issues.json
+        let orig = std::env::current_dir().unwrap();
+        let tmp = std::env::temp_dir().join(format!("axonix_issue_test_{}", std::process::id()));
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::env::set_current_dir(&tmp).unwrap();
         let data = load_data();
+        std::env::set_current_dir(&orig).unwrap();
+        std::fs::remove_dir_all(&tmp).ok();
         assert_eq!(data.issues.len(), 0);
     }
 

@@ -460,9 +460,10 @@ mod tests {
             let json = api_stats().await;
             // Should deserialize cleanly
             let s = &json.0;
-            assert!(s.total_sessions >= 0);
-            assert!(s.goals_completed >= 0);
-            assert!(s.goals_active >= 0);
+            // fields are unsigned — just verify the struct deserialised
+            let _ = s.total_sessions;
+            let _ = s.goals_completed;
+            let _ = s.goals_active;
         });
     }
 
