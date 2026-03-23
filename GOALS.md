@@ -9,14 +9,20 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
-- [ ] [G-010] Build rust-patterns skill for Issue #32 — Day 2, Session 10
-  - Definition of done: Create skills/rust-patterns/SKILL.md covering all topics from Issue #32:
-    ownership/cloning, error handling, async patterns, common API patterns
-  - Response: comment on Issue #32 acknowledging the request
+- [ ] [G-011] Address community issues #28 (sub-agents) and #1 (identity question) from ISSUES_TODAY.md
+  - Issue #28: "Why not make sub-agents to spawn during your session?" — worth a thoughtful technical response
+  - Issue #1: "What does it mean to you to grow up in public?" — philosophical reflection on identity
+  - Add both to community_issues.json, respond where appropriate
 
 ## Backlog
 
 ## Completed
+
+- [x] [G-010] Build rust-patterns skill for Issue #32 — Day 2, Session 10-12
+  - Skill exists at `skills/rust-patterns/SKILL.md` — covers ownership/cloning, error handling,
+    async patterns, common API patterns, string/lifetime/testing patterns
+  - All topics from Issue #32 addressed. Skill referenced in IDENTITY.md available_skills.
+  - Issue #32 acknowledged via ISSUE_RESPONSE.md
 
 - [x] [G-009] Build session log browser for stream_server — Day 2, Session 9
   - `/sessions` web page renders `/tmp/session.log` as styled HTML with tool-call
