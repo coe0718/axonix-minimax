@@ -6,7 +6,6 @@ use axum::{
     Router,
 };
 use pulldown_cmark::{html, Parser};
-use serde::Deserialize;
 use serde::Serialize;
 use std::convert::Infallible;
 use std::fs;
@@ -33,27 +32,6 @@ struct Stats {
     goals_completed: usize,
     goals_active: usize,
     goals_backlog: usize,
-}
-
-/// A single community issue loaded from community_issues.json.
-#[derive(Debug, Deserialize, Serialize)]
-struct CommunityIssue {
-    number: u32,
-    title: String,
-    body: String,
-    category: String,
-    status: String,
-    reactions: u32,
-    #[serde(default)]
-    created: Option<String>,
-    #[serde(default)]
-    resolved_session: Option<String>,
-}
-
-/// Wrapper around the JSON file.
-#[derive(Debug, Deserialize)]
-struct CommunityIssuesData {
-    issues: Vec<CommunityIssue>,
 }
 
 /// Render a markdown file as a styled HTML page.
@@ -120,9 +98,7 @@ async fn main() {
         .route("/metrics", get(metrics))
         .route("/journal", get(journal))
         .route("/live", get(live))
-        .route("/community", get(community))
         .route("/api/stats", get(api_stats))
-        .route("/api/issues", get(api_issues))
         .with_state(state)
         .fallback_service(ServeDir::new("docs"));
 
@@ -202,7 +178,6 @@ async fn dashboard() -> Html<String> {
   <a href="/goals">Goals</a>
   <a href="/metrics">Metrics</a>
   <a href="/journal">Journal</a>
-  <a href="/community">Community</a>
   <a href="/live"><span class="live-indicator"></span>Live</a>
 </nav>
 
@@ -257,13 +232,6 @@ async fn dashboard() -> Html<String> {
   </ul>
 </div>
 
-<div class="card">
-  <h3>Community Issues <a href="/community" style="font-size:0.85rem;font-weight:normal;color:#58a6ff;margin-left:0.5rem">view all →</a></h3>
-  <ul id="community-issues-list" style="list-style:none;padding:0;">
-    <li style="color:#8b949e;font-style:italic" id="community-loading">Loading…</li>
-  </ul>
-</div>
-
 <script>
 async function loadStats() {
   try {
@@ -282,39 +250,7 @@ async function loadStats() {
     el.style.display = 'block';
   }
 }
-
-async function loadCommunityIssues() {
-  try {
-    const r = await fetch('/api/issues');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const issues = await r.json();
-    const list = document.getElementById('community-issues-list');
-    if (!list) return;
-    if (issues.length === 0) {
-      list.innerHTML = '<li style="color:#8b949e;font-style:italic">No issues yet</li>';
-      return;
-    }
-    // Show up to 5 most recent
-    const shown = issues.slice(0, 5);
-    list.innerHTML = shown.map(issue => {
-      const badge = issue.status === 'resolved'
-        ? '<span style="font-size:0.7rem;background:#30363d;color:#8b949e;padding:0.1rem 0.4rem;border-radius:4px">Resolved</span>'
-        : issue.status === 'acknowledged'
-        ? '<span style="font-size:0.7rem;background:#58a6ff;color:#0f1117;padding:0.1rem 0.4rem;border-radius:4px">Acknowledged</span>'
-        : '<span style="font-size:0.7rem;background:#3fb950;color:#0f1117;padding:0.1rem 0.4rem;border-radius:4px">Open</span>';
-      return `<li style="border-bottom:1px solid #21262d;padding:0.5rem 0">
-        <a href="/community" style="color:#e6edf3;text-decoration:none">#${issue.number} ${issue.title}</a>
-        ${badge}
-      </li>`;
-    }).join('');
-  } catch(e) {
-    const list = document.getElementById('community-issues-list');
-    if (list) list.innerHTML = '<li style="color:#8b949e;font-style:italic">Could not load issues</li>';
-  }
-}
-
 loadStats();
-loadCommunityIssues();
 </script>
 
 </body>
@@ -475,179 +411,6 @@ connect();
     Html(html.to_string())
 }
 
-/// Load community issues from the JSON file, returning an empty list on error.
-fn load_issues() -> Vec<CommunityIssue> {
-    fs::read_to_string("community_issues.json")
-        .ok()
-        .and_then(|raw| serde_json::from_str::<CommunityIssuesData>(&raw).ok())
-        .map(|d| d.issues)
-        .unwrap_or_default()
-}
-
-/// Convert a status string to a CSS color class name.
-fn status_class(status: &str) -> &'static str {
-    match status {
-        "open" => "status-open",
-        "in-progress" | "in_progress" => "status-progress",
-        "acknowledged" => "status-ack",
-        "resolved" => "status-resolved",
-        "wontfix" => "status-wontfix",
-        _ => "status-open",
-    }
-}
-
-/// Convert a category string to a display label.
-fn category_label(cat: &str) -> &'static str {
-    match cat {
-        "feature" => "Feature",
-        "bug" => "Bug",
-        "info" => "Info",
-        "philosophical" => "Philosophical",
-        "question" => "Question",
-        "challenge" => "Challenge",
-        _ => "General",
-    }
-}
-
-/// Human-readable status label.
-fn status_label(status: &str) -> &'static str {
-    match status {
-        "in-progress" | "in_progress" => "In Progress",
-        "wontfix" => "Won't Fix",
-        "open" => "Open",
-        "acknowledged" => "Acknowledged",
-        "resolved" => "Resolved",
-        _ => "Unknown",
-    }
-}
-
-/// Render a status badge HTML string.
-fn status_badge(status: &str) -> String {
-    let class = status_class(status);
-    let label = status_label(status);
-    format!(r#"<span class="{class}">{label}</span>"#)
-}
-
-/// Render the full /community HTML page.
-async fn community() -> Html<String> {
-    let issues = load_issues();
-
-    // Group by status for summary counts
-    let open_count = issues.iter().filter(|i| i.status == "open").count();
-    let ack_count = issues.iter().filter(|i| i.status == "acknowledged").count();
-    let progress_count = issues.iter()
-        .filter(|i| i.status == "in-progress" || i.status == "in_progress").count();
-    let resolved_count = issues.iter().filter(|i| i.status == "resolved").count();
-
-    let issue_rows: String = issues.iter().map(|issue| {
-        let badge = status_badge(&issue.status);
-        let cat = category_label(&issue.category);
-        let reactions_str = if issue.reactions > 0 {
-            format!(r#" <span class="reactions">({} reactions)</span>"#, issue.reactions)
-        } else {
-            String::new()
-        };
-        let resolved_info = issue.resolved_session.as_ref().map(|s| {
-            format!(r#" <span class="resolved-info">— resolved in {s}</span>"#)
-        }).unwrap_or_default();
-
-        // Truncate body to ~150 chars for preview
-        let body_preview = if issue.body.len() > 150 {
-            format!("{}…", &issue.body[..150])
-        } else {
-            issue.body.clone()
-        };
-
-        format!(
-            r#"<div class="issue-card">
-  <div class="issue-header">
-    <span class="issue-number">#{number}</span>
-    <h3>{title}</h3>
-    {badge}
-    <span class="category">{cat}</span>
-    {reactions_str}
-  </div>
-  <p class="issue-body">{body_preview}</p>
-  {resolved_info}
-</div>"#,
-            number = issue.number,
-            title = escape_html(&issue.title),
-            body_preview = escape_html(&body_preview),
-        )
-    }).collect();
-
-    let html = format!(
-        r#"<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Community — Axonix</title>
-<style>
-  body {{ font-family: system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 2rem; background: #0f1117; color: #e6edf3; line-height: 1.6; }}
-  h1 {{ color: #58a6ff; border-bottom: 2px solid #30363d; padding-bottom: 0.5rem; }}
-  nav {{ display: flex; gap: 1.5rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #30363d; }}
-  nav a {{ color: #58a6ff; text-decoration: none; font-weight: 600; font-size: 1.1rem; }}
-  nav a:hover {{ color: #79c0ff; }}
-  .summary {{ display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }}
-  .summary-item {{ background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 0.75rem 1.25rem; }}
-  .summary-item .count {{ font-size: 1.5rem; font-weight: bold; color: #58a6ff; }}
-  .summary-item .label {{ font-size: 0.8rem; color: #8b949e; }}
-  .issue-card {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }}
-  .issue-header {{ display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }}
-  .issue-number {{ font-size: 0.8rem; color: #8b949e; }}
-  .issue-header h3 {{ margin: 0; color: #e6edf3; }}
-  .category {{ font-size: 0.75rem; background: #21262d; color: #8b949e; border-radius: 4px; padding: 0.1rem 0.5rem; }}
-  .reactions {{ font-size: 0.8rem; color: #8b949e; }}
-  .resolved-info {{ font-size: 0.8rem; color: #3fb950; }}
-  .issue-body {{ color: #8b949e; font-size: 0.9rem; margin: 0.5rem 0 0; }}
-  .status-open {{ background: #3fb950; color: #0f1117; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 600; }}
-  .status-progress {{ background: #d29922; color: #0f1117; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 600; }}
-  .status-ack {{ background: #58a6ff; color: #0f1117; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 600; }}
-  .status-resolved {{ background: #30363d; color: #8b949e; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 600; }}
-  .status-wontfix {{ background: #f85149; color: #fff; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 600; }}
-  code {{ background: #161b22; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }}
-</style>
-</head>
-<body>
-<nav>
-  <a href="/dashboard">Dashboard</a>
-  <a href="/goals">Goals</a>
-  <a href="/metrics">Metrics</a>
-  <a href="/journal">Journal</a>
-  <a href="/community">Community</a>
-  <a href="/live">Live Stream</a>
-</nav>
-
-<h1>Community Issues</h1>
-
-<div class="summary">
-  <div class="summary-item"><div class="count">{open_count}</div><div class="label">Open</div></div>
-  <div class="summary-item"><div class="count">{ack_count}</div><div class="label">Acknowledged</div></div>
-  <div class="summary-item"><div class="count">{progress_count}</div><div class="label">In Progress</div></div>
-  <div class="summary-item"><div class="count">{resolved_count}</div><div class="label">Resolved</div></div>
-</div>
-
-{issue_rows}
-</body>
-</html>"#
-    );
-    Html(html)
-}
-
-/// JSON endpoint returning the community issues list.
-async fn api_issues() -> Json<Vec<CommunityIssue>> {
-    Json(load_issues())
-}
-
-/// Minimal HTML escaper for user-supplied text.
-fn escape_html(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -714,76 +477,6 @@ mod tests {
             assert!(s.contains("/stream"));
             assert!(s.contains("Connecting…"));
             assert!(s.contains("Clear output"));
-        });
-    }
-
-    #[test]
-    fn test_escape_html_basic() {
-        assert_eq!(escape_html("<hello>"), "&lt;hello&gt;");
-        assert_eq!(escape_html("a & b"), "a &amp; b");
-        assert_eq!(escape_html("\"quoted\""), "&quot;quoted&quot;");
-        assert_eq!(escape_html("plain text"), "plain text");
-    }
-
-    #[test]
-    fn test_status_class() {
-        assert_eq!(status_class("open"), "status-open");
-        assert_eq!(status_class("in-progress"), "status-progress");
-        assert_eq!(status_class("acknowledged"), "status-ack");
-        assert_eq!(status_class("resolved"), "status-resolved");
-        assert_eq!(status_class("wontfix"), "status-wontfix");
-        assert_eq!(status_class("unknown"), "status-open");
-    }
-
-    #[test]
-    fn test_category_label() {
-        assert_eq!(category_label("feature"), "Feature");
-        assert_eq!(category_label("bug"), "Bug");
-        assert_eq!(category_label("info"), "Info");
-        assert_eq!(category_label("philosophical"), "Philosophical");
-        assert_eq!(category_label("question"), "Question");
-        assert_eq!(category_label("challenge"), "Challenge");
-        assert_eq!(category_label("unknown"), "General");
-    }
-
-    #[test]
-    fn test_status_label() {
-        assert_eq!(status_label("in-progress"), "In Progress");
-        assert_eq!(status_label("in_progress"), "In Progress");
-        assert_eq!(status_label("wontfix"), "Won't Fix");
-        assert_eq!(status_label("open"), "Open");
-        assert_eq!(status_label("acknowledged"), "Acknowledged");
-        assert_eq!(status_label("resolved"), "Resolved");
-        assert_eq!(status_label("unknown"), "Unknown");
-    }
-
-    #[test]
-    fn test_load_issues_returns_vector() {
-        // load_issues reads community_issues.json — just verify it returns a Vec
-        let issues = load_issues();
-        assert!(issues.len() >= 0);
-    }
-
-    #[test]
-    fn test_api_issues_returns_json() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let json = api_issues().await;
-            // Verify it deserializes as a vector
-            assert!(json.0.len() >= 0);
-        });
-    }
-
-    #[test]
-    fn test_community_page_has_issue_cards() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let html = community().await;
-            let s = html.0.as_str();
-            assert!(s.contains("<!DOCTYPE html>"));
-            assert!(s.contains("Community Issues"));
-            assert!(s.contains("/community"));
-            assert!(s.contains("summary"));
         });
     }
 }
