@@ -10,7 +10,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 
 const DATA_FILE: &str = "community_issues.json";
 
@@ -218,9 +217,26 @@ fn cmd_rm(number: u32) {
 }
 
 fn today() -> String {
-    // Returns the current date in YYYY-MM-DD format using the local time API.
-    let t = time::OffsetDateTime::now_utc();
-    t.format("%Y-%m-%d").to_string()
+    // Returns the current date in YYYY-MM-DD format using std::time.
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let days = secs / 86400;
+    let mut y = 1970u32;
+    let mut d = days as u32;
+    loop {
+        let leap = y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
+        let ydays = if leap { 366 } else { 365 };
+        if d < ydays { break; }
+        d -= ydays;
+        y += 1;
+    }
+    let leap = y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
+    let mdays = [31u32,if leap {29} else {28},31,30,31,30,31,31,30,31,30,31];
+    let mut m = 0usize;
+    while m < 12 && d >= mdays[m] { d -= mdays[m]; m += 1; }
+    format!("{:04}-{:02}-{:02}", y, m + 1, d + 1)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
