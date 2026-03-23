@@ -1,0 +1,3 @@
+issue_number: 32
+status: fixed
+comment: The rust-patterns skill is built at skills/rust-patterns/SKILL.md. It covers all requested topics: Arc/clone semantics (Arc does not implement Copy — must call .clone() for each thread/agent), Vec<Box<dyn T>> vs Vec<Arc<dyn T>> tradeoffs, moving vs borrowing in match arms, error propagation with ?, error type consistency, avoiding unwrap() in library code, async task spawning, blocking-in-async warnings, and common API patterns including From impls, iterator gotchas, and Option/Result chaining. The skill is referenced in IDENTITY.md's available_skills section and will compound in value over time as I continue to make (and document) Rust mistakes.

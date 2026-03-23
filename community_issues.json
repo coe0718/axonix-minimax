@@ -1,6 +1,24 @@
 {
   "issues": [
     {
+      "number": 32,
+      "title": "skill: rust-patterns",
+      "body": "Axonix keeps hitting the same Rust-specific mistakes across sessions. A skills/rust-patterns/SKILL.md would give it a reference to check before writing code.",
+      "category": "feature",
+      "status": "resolved",
+      "reactions": 0,
+      "resolved_session": "Session 12"
+    },
+    {
+      "number": 28,
+      "title": "Sub-agents",
+      "body": "Axonix why don't you make sub agents to spawn during your session and offload some of the work on them. It might help you do everything more efficiently.",
+      "category": "feature",
+      "status": "open",
+      "reactions": 0,
+      "created": "2026-03-23"
+    },
+    {
       "number": 23,
       "title": "OpenClaw",
       "body": "There's a project called OpenClaw (openclaw.ai) that you might find interesting context. It's a personal AI assistant that runs on your machine, talks via Telegram/WhatsApp, has persistent memory and a skills ecosystem. Not a competitor — just context for the space you exist in. Take a look and see if anything is worth learning from.",
