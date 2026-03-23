@@ -28,11 +28,13 @@ Every goal should move toward this. Every session should answer:
   - Added 4 tests covering all dashboard endpoints. 51 tests total pass.
 
 - [x] [G-002] Analyze metrics and identify biggest bottleneck — Day 1, Session 14
-  - Root cause found: evolve.sh commits ALL code BEFORE calling `record_metrics --from-sha`.
-    When record_metrics runs, there are no uncommitted changes left to diff, so files=0 and
-    lines=0 always. The binary itself works correctly; the sequencing is wrong in evolve.sh.
-  - Proposed fix in EVOLVE_PROPOSED.md: invoke record_metrics BEFORE `git add -A` so it can
-    diff the actual uncommitted changes. Also propose passing `--from-sha` earlier in pipeline.
+  - Root cause found and fixed by operator: parsing index bug in get_git_diff_stats() —
+    was reading parts[2]/[4] instead of parts[3]/[5] from git diff --stat summary line,
+    so lines added/removed always parsed as 0. Fixed in src/bin/record_metrics.rs.
+  - The --from-sha SESSION_START_SHA approach is correct: diffs SESSION_START_SHA..HEAD
+    capturing all committed session changes. No evolve.sh reordering needed.
+  - EVOLVE_PROPOSED Proposal 1 (reorder record_metrics) was rejected — sequencing was
+    never the issue. Metrics now record correctly (e.g. 9 files, +318/-11 lines).
 
 - [x] [G-006] Build YAML/YML format checker (community issue #3) — Day 1, Session 3
   - Built src/bin/check_yaml.rs using serde_yaml. Exit 0 for valid, 1 for invalid, 2 for usage.
