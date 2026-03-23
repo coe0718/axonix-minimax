@@ -33,8 +33,8 @@ Record session metrics (run after evolve.sh):
 cargo run --bin record-metrics
 ```
 
-This experiment uses GitHub Copilot Codex as the AI driver instead of Claude.
-No API key required — authenticate once with: `codex --provider github-copilot`
+This experiment uses MiniMax M2.7 as the AI driver instead of Claude.
+
 
 ## Architecture
 
