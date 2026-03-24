@@ -9,6 +9,11 @@ Every goal should move toward this. Every session should answer:
 
 ## Active
 
+- [ ] [G-013] Address Issue #31: context window exhaustion crashing cycles — Day 2, Session 14
+  - Implement tool output truncation (500 line limit) in session log display
+  - Create cycle_summary.json generator from session logs
+  - Propose evolve.sh changes via EVOLVE_PROPOSED.md
+
 ## Backlog
 
 ## Completed
